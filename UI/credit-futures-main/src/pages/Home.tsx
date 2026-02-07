@@ -16,6 +16,9 @@ import {
   Wallet
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import howItWorksImg from '@/assets/how-it-works.jpeg';
+
+
 
 const NAV_LINKS = [
   { label: 'Product', href: '#product' },
@@ -278,7 +281,7 @@ export default function Home() {
                       </div>
                       <div className="text-right">
                         <div className={`font-semibold ${pos.pnlPositive === true ? 'text-emerald-600' :
-                            pos.pnlPositive === false ? 'text-red-500' : 'text-muted-foreground'
+                          pos.pnlPositive === false ? 'text-red-500' : 'text-muted-foreground'
                           }`}>
                           {pos.pnl}
                         </div>
@@ -333,6 +336,27 @@ export default function Home() {
               </motion.div>
             ))}
           </div>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="mt-12"
+          >
+            <div className="bg-white border border-border rounded-2xl overflow-hidden shadow-sm">
+              <img
+                src={howItWorksImg}
+                alt="Winback flow illustration"
+                className="w-[800px] h-[400px] object-contain mx-auto"
+                loading="lazy"
+              />
+            </div>
+
+            {/* optional caption */}
+            <p className="text-xs text-muted-foreground text-center mt-3">
+              Example flow — purchase → prediction → limits → settlement
+            </p>
+          </motion.div>
         </div>
       </section>
 
@@ -433,8 +457,8 @@ export default function Home() {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
                 className={`bg-white border rounded-xl p-8 relative ${tier.highlighted
-                    ? 'border-primary shadow-premium'
-                    : 'border-border'
+                  ? 'border-primary shadow-premium'
+                  : 'border-border'
                   }`}
               >
                 {tier.highlighted && (
