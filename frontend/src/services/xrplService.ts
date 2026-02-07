@@ -3,7 +3,7 @@
  * Handles all blockchain interactions for transparent settlement
  */
 
-const XRPL_API_BASE = 'https://tartanhacks-2026-back.onrender.com';
+const XRPL_API_BASE = 'http://localhost:8000';
 
 // ============================================
 // TYPES
