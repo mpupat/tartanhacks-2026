@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Position, Purchase, SavedMarket, MarketCategory, PredictionDirection } from '@/types/kalshi';
+import { computeHardMaxExpiryISO, clampExpiryISO } from "@/lib/risk"; // or "@/lib/rules"
+
+
 
 // Types
 export interface Product {
@@ -30,6 +33,7 @@ interface AppState {
   // Positions
   positions: Position[];
   addPosition: (purchase: Purchase) => void;
+
   configurePosition: (
     id: string,
     marketTicker: string,
@@ -440,30 +444,55 @@ export const useAppStore = create<AppState>()(
         maxLossPercent,
         timeLimitDays
       ) => set((state) => ({
-        positions: state.positions.map((pos) =>
-          pos.id === id
-            ? {
-              ...pos,
-              market_ticker: marketTicker,
-              market_title: marketTitle,
-              market_category: marketCategory,
-              market_closes_at: marketClosesAt,
-              prediction_direction: direction,
-              entry_price: entryPrice,
-              current_price: entryPrice,
-              max_reward_percent: maxRewardPercent,
-              max_loss_percent: maxLossPercent,
-              time_limit_days: timeLimitDays,
-              expires_at: new Date(
-                Date.now() + timeLimitDays * 24 * 60 * 60 * 1000
-              ).toISOString(),
-              status: 'active',
-              configured_at: new Date().toISOString(),
-            }
-            : pos
-        ),
-      })),
+        positions: state.positions.map((pos) => {
+          if (pos.id !== id) return pos;
 
+          // Requested expiry (what user selected)
+          const requestedExpiryISO = new Date(
+            Date.now() + timeLimitDays * 24 * 60 * 60 * 1000
+          ).toISOString();
+
+          // Build a minimal "market" object for risk calc
+          // (your risk function needs market.close_date)
+          const marketForRisk = {
+            close_date: marketClosesAt,
+          } as any;
+
+          // Hard max expiry = min(market close, now + max duration from bet size)
+          const hardMaxExpiryISO = computeHardMaxExpiryISO({
+            market: marketForRisk,
+            purchaseAmount: pos.purchase.purchase_amount,
+            maxLossPercent: maxLossPercent,
+            maxRewardPercent: maxRewardPercent,
+          });
+
+          // Final expiry is clamped
+          const boundedExpiryISO = clampExpiryISO({
+            requestedExpiryISO,
+            hardMaxExpiryISO,
+          });
+
+          return {
+            ...pos,
+            market_ticker: marketTicker,
+            market_title: marketTitle,
+            market_category: marketCategory,
+            market_closes_at: marketClosesAt,
+            prediction_direction: direction,
+            entry_price: entryPrice,
+            current_price: entryPrice,
+            max_reward_percent: maxRewardPercent,
+            max_loss_percent: maxLossPercent,
+            time_limit_days: timeLimitDays,
+
+            // ✅ bounded expiry
+            expires_at: boundedExpiryISO,
+
+            status: "active",
+            configured_at: new Date().toISOString(),
+          };
+        }),
+      })),
       updatePositionPrice: (id, currentPrice) => set((state) => ({
         positions: state.positions.map((pos) =>
           pos.id === id ? { ...pos, current_price: currentPrice } : pos
