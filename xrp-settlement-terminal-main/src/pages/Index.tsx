@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { PriceChart } from '@/components/PriceChart';
 import { PositionForm } from '@/components/PositionFormNew';
 import { PositionMonitor } from '@/components/PositionMonitorNew';
@@ -19,10 +20,16 @@ import {
   Coins
 } from 'lucide-react';
 
+import { auth } from '@/services/apiClient';
+
 const Index = () => {
   const { priceData } = useXRPPrice();
   const { wallet, generateWallet, connectionStatus } = useXRPL();
   const isPositive = priceData.changePercent24h >= 0;
+
+  useEffect(() => {
+    auth.loginAsDemo();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -50,8 +57,8 @@ const Index = () => {
 
           <div className="flex items-center gap-3">
             <span className={`text-xs px-2 py-1 rounded-full ${connectionStatus === 'connected'
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+              : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
               }`}>
               {connectionStatus === 'connected' ? '● Testnet' : '○ Connecting...'}
             </span>
@@ -99,8 +106,8 @@ const Index = () => {
               <button
                 key={period}
                 className={`px-4 py-2 rounded-full text-sm transition ${i === 1
-                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                    : 'text-white/40 hover:text-white hover:bg-white/5'
+                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                  : 'text-white/40 hover:text-white hover:bg-white/5'
                   }`}
               >
                 {period}

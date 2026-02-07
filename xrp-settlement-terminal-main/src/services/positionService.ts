@@ -1,63 +1,58 @@
-// Position Management Service - Long/Short positions with triggers
-
-import type {
-    Position,
-    PositionCreate,
-    PositionStatus,
-    TriggerCheck
-} from '@/types/positionTypes';
-
-const STORAGE_KEY = 'nexus_positions';
+import { positions as positionsApi } from './apiClient';
+import type { Position, PositionCreate, TriggerCheck, PositionStatus } from '@/types/positionTypes';
 
 class PositionService {
-    private positions: Map<string, Position> = new Map();
-    private listeners: Set<() => void> = new Set();
+    private positions: Position[] = [];
+    private listeners: (() => void)[] = [];
 
-    constructor() {
-        this.loadFromStorage();
-    }
-
-    // Load positions from localStorage
-    private loadFromStorage(): void {
+    // Initialize by fetching from API
+    async initialize() {
         try {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                parsed.forEach((pos: Position) => {
-                    pos.createdAt = new Date(pos.createdAt);
-                    if (pos.closedAt) pos.closedAt = new Date(pos.closedAt);
-                    this.positions.set(pos.id, pos);
-                });
-            }
+            const response = await positionsApi.list();
+            // Transform API response to frontend model
+            this.positions = response.data.map((p: any) => ({
+                id: p.id,
+                type: p.type,
+                entryPrice: Number(p.entry_price),
+                currentPrice: Number(p.entry_price), // Initial value
+                amount: Number(p.amount),
+                takeProfitPercent: Number(p.take_profit_pct),
+                stopLossPercent: Number(p.stop_loss_pct),
+                status: this.mapStatus(p.status),
+                pnl: Number(p.pnl),
+                pnlPercent: Number(p.pnl_percent || 0),
+                createdAt: new Date(p.created_at),
+                closedAt: p.closed_at ? new Date(p.closed_at) : undefined,
+            }));
+            this.notifyListeners();
         } catch (error) {
-            console.error('Failed to load positions:', error);
+            console.error('Failed to fetch positions:', error);
         }
     }
 
-    // Save positions to localStorage
-    private saveToStorage(): void {
-        try {
-            const posArray = Array.from(this.positions.values());
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(posArray));
-        } catch (error) {
-            console.error('Failed to save positions:', error);
-        }
+    private mapStatus(status: string): PositionStatus {
+        if (status === 'closed_take_profit') return 'closed_profit';
+        if (status === 'closed_stop_loss') return 'closed_loss';
+        return status as PositionStatus;
     }
 
-    // Notify listeners of changes
-    private notifyListeners(): void {
-        this.listeners.forEach(cb => cb());
+    getActivePositions(): Position[] {
+        return this.positions.filter(p => p.status === 'active');
     }
 
-    // Generate unique ID
-    private generateId(): string {
-        return `pos_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    getAllPositions(): Position[] {
+        return this.positions;
     }
 
-    // Create a new position
-    createPosition(data: PositionCreate, currentPrice: number): Position {
-        const position: Position = {
-            id: this.generateId(),
+    getClosedPositions(): Position[] {
+        return this.positions.filter(p => p.status !== 'active');
+    }
+
+    async createPosition(data: PositionCreate, currentPrice: number): Promise<Position> {
+        // Optimistic update
+        const tempId = `temp-${Date.now()}`;
+        const newPosition: Position = {
+            id: tempId,
             type: data.type,
             entryPrice: currentPrice,
             currentPrice: currentPrice,
@@ -70,124 +65,109 @@ class PositionService {
             createdAt: new Date(),
         };
 
-        this.positions.set(position.id, position);
-        this.saveToStorage();
+        this.positions.unshift(newPosition);
         this.notifyListeners();
 
-        return position;
-    }
+        try {
+            // Send to backend
+            const apiData = {
+                type: data.type,
+                entry_price: currentPrice,
+                amount: data.amount,
+                take_profit_pct: data.takeProfitPercent,
+                stop_loss_pct: data.stopLossPercent,
+            };
 
-    // Update price and check triggers for all active positions
-    updatePriceAndCheckTriggers(currentPrice: number): Position[] {
-        const closedPositions: Position[] = [];
+            const response = await positionsApi.create(apiData);
 
-        this.positions.forEach((position, id) => {
-            if (position.status !== 'active') return;
-
-            // Update current price
-            position.currentPrice = currentPrice;
-
-            // Calculate P&L
-            const pnlResult = this.calculatePnL(position, currentPrice);
-            position.pnl = pnlResult.pnl;
-            position.pnlPercent = pnlResult.pnlPercent;
-
-            // Check triggers
-            const triggerCheck = this.checkTriggers(position);
-            if (triggerCheck.triggered) {
-                position.status = triggerCheck.reason === 'take_profit'
-                    ? 'closed_profit'
-                    : 'closed_loss';
-                position.closedAt = new Date();
-                position.closeReason = triggerCheck.reason;
-                closedPositions.push(position);
+            // Replace optimistically created position with real one
+            const index = this.positions.findIndex(p => p.id === tempId);
+            if (index !== -1) {
+                this.positions[index] = {
+                    id: response.data.id,
+                    type: response.data.type,
+                    entryPrice: Number(response.data.entry_price),
+                    currentPrice: currentPrice,
+                    amount: Number(response.data.amount),
+                    takeProfitPercent: Number(response.data.take_profit_pct),
+                    stopLossPercent: Number(response.data.stop_loss_pct),
+                    status: this.mapStatus(response.data.status),
+                    pnl: Number(response.data.pnl),
+                    pnlPercent: Number(response.data.pnl_percent || 0),
+                    createdAt: new Date(response.data.created_at),
+                };
+                this.notifyListeners();
             }
 
-            this.positions.set(id, position);
-        });
+            return this.positions[index !== -1 ? index : 0];
+        } catch (error) {
+            console.error('Failed to create position:', error);
+            // Rollback on error
+            this.positions = this.positions.filter(p => p.id !== tempId);
+            this.notifyListeners();
+            throw error;
+        }
+    }
 
-        if (closedPositions.length > 0) {
-            this.saveToStorage();
+    async closePosition(id: string) {
+        // Optimistic update
+        const index = this.positions.findIndex(p => p.id === id);
+        if (index !== -1) {
+            this.positions[index].status = 'closed_manual';
             this.notifyListeners();
         }
 
-        return closedPositions;
-    }
-
-    // Calculate P&L for a position
-    calculatePnL(position: Position, currentPrice: number): { pnl: number; pnlPercent: number } {
-        const priceChange = ((currentPrice - position.entryPrice) / position.entryPrice) * 100;
-
-        // For long: profit when price goes up
-        // For short: profit when price goes down
-        const pnlPercent = position.type === 'long' ? priceChange : -priceChange;
-        const pnl = (pnlPercent / 100) * position.amount;
-
-        return { pnl, pnlPercent };
-    }
-
-    // Check if position triggers are hit
-    checkTriggers(position: Position): TriggerCheck {
-        const { pnl, pnlPercent } = this.calculatePnL(position, position.currentPrice);
-
-        // Check take profit (positive threshold)
-        if (pnlPercent >= position.takeProfitPercent) {
-            return { triggered: true, reason: 'take_profit', pnl, pnlPercent };
+        try {
+            await positionsApi.close(id);
+        } catch (error) {
+            console.error('Failed to close position:', error);
         }
+    }
 
-        // Check stop loss (negative threshold)
-        if (pnlPercent <= -position.stopLossPercent) {
-            return { triggered: true, reason: 'stop_loss', pnl, pnlPercent };
+    // P&L calculation remains local for real-time responsiveness
+    updatePriceAndCheckTriggers(currentPrice: number): void {
+        let hasUpdates = false;
+
+        this.positions.forEach(position => {
+            if (position.status !== 'active') return;
+
+            position.currentPrice = currentPrice;
+
+            const priceDiff = currentPrice - position.entryPrice;
+            const pnlPercent = (priceDiff / position.entryPrice) * 100 * (position.type === 'long' ? 1 : -1);
+            const pnl = (position.amount * pnlPercent) / 100;
+
+            if (position.pnl !== pnl || position.pnlPercent !== pnlPercent) {
+                position.pnl = pnl;
+                position.pnlPercent = pnlPercent;
+                hasUpdates = true;
+            }
+
+            // Check triggers (Simulated locally for now, ideally backend job)
+            if (pnlPercent >= position.takeProfitPercent) {
+                this.closePosition(position.id); // Trigger API close
+            } else if (pnlPercent <= -position.stopLossPercent) {
+                this.closePosition(position.id); // Trigger API close
+            }
+        });
+
+        if (hasUpdates) {
+            this.notifyListeners();
         }
-
-        return { triggered: false, pnl, pnlPercent };
     }
 
-    // Manually close a position
-    closePosition(id: string): Position | null {
-        const position = this.positions.get(id);
-        if (!position || position.status !== 'active') return null;
-
-        position.status = 'closed_manual';
-        position.closedAt = new Date();
-        position.closeReason = 'manual';
-
-        this.positions.set(id, position);
-        this.saveToStorage();
-        this.notifyListeners();
-
-        return position;
+    subscribe(listener: () => void) {
+        this.listeners.push(listener);
+        return () => {
+            this.listeners = this.listeners.filter(l => l !== listener);
+        };
     }
 
-    // Get all positions
-    getAllPositions(): Position[] {
-        return Array.from(this.positions.values()).sort(
-            (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-        );
+    private notifyListeners() {
+        this.listeners.forEach(listener => listener());
     }
 
-    // Get active positions
-    getActivePositions(): Position[] {
-        return this.getAllPositions().filter(p => p.status === 'active');
-    }
-
-    // Get closed positions
-    getClosedPositions(): Position[] {
-        return this.getAllPositions().filter(p => p.status !== 'active');
-    }
-
-    // Get position by ID
-    getPosition(id: string): Position | undefined {
-        return this.positions.get(id);
-    }
-
-    // Subscribe to position changes
-    subscribe(callback: () => void): () => void {
-        this.listeners.add(callback);
-        return () => this.listeners.delete(callback);
-    }
-
-    // Get statistics
+    // Get statistics for DashboardStats
     getStats(): {
         totalPositions: number;
         activePositions: number;
@@ -196,7 +176,7 @@ class PositionService {
     } {
         const all = this.getAllPositions();
         const closed = all.filter(p => p.status !== 'active');
-        const wins = closed.filter(p => p.status === 'closed_profit').length;
+        const wins = closed.filter(p => p.status === 'closed_profit' || (p.status === 'closed_manual' && p.pnl > 0)).length;
         const totalPnL = closed.reduce((sum, p) => sum + p.pnl, 0);
 
         return {
@@ -206,13 +186,8 @@ class PositionService {
             totalPnL,
         };
     }
-
-    // Clear all positions (for testing)
-    clearAll(): void {
-        this.positions.clear();
-        this.saveToStorage();
-        this.notifyListeners();
-    }
 }
 
 export const positionService = new PositionService();
+// Start fetching immediately
+positionService.initialize();

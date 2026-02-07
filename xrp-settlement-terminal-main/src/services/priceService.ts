@@ -81,20 +81,23 @@ export async function fetchXRPPrice(): Promise<RealPriceData> {
 }
 
 // Simplified price-only fetch (for frequent updates)
-export async function fetchXRPPriceSimple(): Promise<number> {
+export const fetchXRPPriceSimple = async (): Promise<number> => {
     try {
-        const response = await fetch(
-            `${COINGECKO_API}/simple/price?ids=ripple&vs_currencies=usd`
-        );
-
-        if (!response.ok) {
-            throw new Error('Failed to fetch price');
-        }
-
+        // Use our own backend proxy to avoid CORS
+        const response = await fetch('/api/prices/current');
+        if (!response.ok) throw new Error('Backend price fetch failed');
         const data = await response.json();
-        return data.ripple.usd;
+        return data.price;
     } catch (error) {
-        console.error('Error fetching simple XRP price:', error);
-        return priceCache?.price ?? 2.45;
+        console.error("Error fetching simple XRP price:", error);
+        // Fallback to CoinGecko if backend fails (might still fail CORS)
+        try {
+            const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ripple&vs_currencies=usd');
+            const data = await response.json();
+            return data.ripple.usd;
+        } catch (e) {
+            console.error("Fallback failed", e);
+            throw error;
+        }
     }
-}
+};

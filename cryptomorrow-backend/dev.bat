@@ -1,0 +1,3 @@
+@echo off
+echo Starting CrypTomorrow Backend...
+c:\Users\amana\.bun\bin\bun run dev

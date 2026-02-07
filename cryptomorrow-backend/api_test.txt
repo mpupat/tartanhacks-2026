@@ -1,0 +1,10 @@
+
+// Create a position
+// curl -X POST http://localhost:3000/api/positions \
+//   -H "Content-Type: application/json" \
+//   -H "Authorization: Bearer YOUR_TOKEN" \
+//   -d '{"type":"long","amount":100,"entry_price":2.5,"take_profit_pct":10,"stop_loss_pct":5}'
+
+// List positions
+// curl http://localhost:3000/api/positions \
+//   -H "Authorization: Bearer YOUR_TOKEN"

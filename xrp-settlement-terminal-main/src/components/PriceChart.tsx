@@ -72,9 +72,28 @@ export function PriceChart({ height = 200 }: PriceChartProps) {
 
         window.addEventListener('resize', handleResize);
 
+        // Connect to real-time backend stream
+        const eventSource = new EventSource('/api/prices/stream');
+
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            const price = data.price;
+
+            setCurrentPrice(price);
+
+            // Update chart
+            if (seriesRef.current) {
+                seriesRef.current.update({
+                    time: Math.floor(data.timestamp / 1000),
+                    value: price
+                });
+            }
+        };
+
         return () => {
             window.removeEventListener('resize', handleResize);
             chart.remove();
+            eventSource.close();
         };
     }, [height]);
 
