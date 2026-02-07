@@ -1,7 +1,7 @@
 # tartanhacks-2026
 
 you need Python and node.js to run this project
-it has been tested with Python 3.13 and node.js 
+it has been tested with Python 3.13 and node.js 25.2.1
 
 # run the backend first
 create a python virtual environment :
