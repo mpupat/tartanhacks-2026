@@ -36,7 +36,6 @@ export default function Explorer() {
             category: selectedCategory,
             sortBy,
             search: searchQuery,
-            status: 'open',
         });
         setMarkets(data);
         setLoading(false);

@@ -1,29 +1,91 @@
-// Kalshi Market Types
+// Kalshi Market Types - Matching Real API Response
 
+// Categories from Kalshi API (normalized to lowercase)
 export type MarketCategory =
-    | 'weather'
     | 'politics'
     | 'economics'
-    | 'sports'
     | 'climate'
+    | 'sports'
     | 'entertainment'
-    | 'finance'
+    | 'financials'
+    | 'health'
+    | 'science'
+    | 'world'
+    | 'social'
     | 'crypto'
+    | 'elections'
+    | 'companies'
+    | 'transportation'
     | 'other';
 
-export type MarketStatus = 'open' | 'closed' | 'settled';
+export type MarketStatus = 'active' | 'closed' | 'settled' | 'open';
 
-export type MarketResult = 'yes' | 'no' | null;
+export type MarketResult = 'yes' | 'no' | '' | null;
 
+// API Response Types
+export interface KalshiAPIMarket {
+    ticker: string;
+    event_ticker: string;
+    title: string;
+    subtitle?: string;
+    open_time: string;
+    close_time: string;
+    expiration_time: string;
+    status: string;
+    yes_bid: number;
+    yes_ask: number;
+    no_bid: number;
+    no_ask: number;
+    last_price: number;
+    previous_yes_bid?: number;
+    previous_yes_ask?: number;
+    volume: number;
+    volume_24h: number;
+    open_interest: number;
+    result?: string;
+    can_close_early?: boolean;
+    expiration_value?: string;
+    latest_expiration_time?: string;
+    cap_strike?: number;
+    floor_strike?: number;
+}
+
+export interface KalshiAPIEvent {
+    event_ticker: string;
+    title: string;
+    sub_title?: string;
+    category: string;
+    series_ticker?: string;
+    mutually_exclusive?: boolean;
+    collateral_return_type?: string;
+    available_on_brokers?: boolean;
+}
+
+export interface KalshiMarketsResponse {
+    markets: KalshiAPIMarket[];
+    cursor?: string;
+}
+
+export interface KalshiEventsResponse {
+    events: KalshiAPIEvent[];
+    cursor?: string;
+}
+
+// Transformed Market for UI (combined market + event data)
 export interface KalshiMarket {
     ticker: string;
     event_ticker: string;
     title: string;
     subtitle: string;
     category: MarketCategory;
-    yes_price: number;      // 0-100 (cents)
+    yes_price: number;      // 0-100 (cents) - derived from yes_bid or last_price
     no_price: number;       // 0-100 (cents)
-    yes_price_change_24h: number;  // percentage change
+    yes_bid: number;
+    yes_ask: number;
+    no_bid: number;
+    no_ask: number;
+    last_price: number;
+    yes_price_change_24h: number;  // calculated change
     volume_24h: number;
     total_volume: number;
     open_interest: number;
