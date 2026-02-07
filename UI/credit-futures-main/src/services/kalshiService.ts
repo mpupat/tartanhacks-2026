@@ -251,10 +251,11 @@ function transformMarket(
 
     // Calculate 24h change
     let priceChange = 0;
-    if (apiMarket.previous_yes_bid && apiMarket.previous_yes_bid > 0) {
-        priceChange = ((yesPrice - apiMarket.previous_yes_bid) / apiMarket.previous_yes_bid) * 100;
-    } else if (apiMarket.previous_price && apiMarket.previous_price > 0) {
-        priceChange = ((yesPrice - apiMarket.previous_price) / apiMarket.previous_price) * 100;
+    const market = apiMarket as any; // API may have additional fields
+    if (market.previous_yes_bid && market.previous_yes_bid > 0) {
+        priceChange = ((yesPrice - market.previous_yes_bid) / market.previous_yes_bid) * 100;
+    } else if (market.previous_price && market.previous_price > 0) {
+        priceChange = ((yesPrice - market.previous_price) / market.previous_price) * 100;
     }
 
     return {

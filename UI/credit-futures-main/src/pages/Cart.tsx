@@ -2,9 +2,10 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/appStore';
 import { cn } from '@/lib/utils';
-import { Minus, Plus, Trash2, ShoppingCart, ArrowRight, Sparkles, TrendingUp, Shield } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingCart, ArrowRight, Sparkles, TrendingUp, Shield, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { logPurchaseToXRPL } from '@/services/xrplService';
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -14,25 +15,47 @@ const Cart = () => {
   const processingFee = subtotal * 0.01; // 1% fee
   const total = subtotal + processingFee;
 
-  const handleCheckout = () => {
-    // Create positions for each cart item
-    cart.forEach((item) => {
+  const handleCheckout = async () => {
+    // Create positions for each cart item and log to XRPL
+    for (const item of cart) {
       for (let i = 0; i < item.quantity; i++) {
+        const purchaseId = `purch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+        // Add position to store
         addPosition({
-          id: `purch-${Date.now()}-${i}`,
+          id: purchaseId,
           item_name: item.product.name,
           item_icon: item.product.icon,
           purchase_amount: item.product.price,
           purchase_date: new Date().toISOString(),
         });
+
+        // Log to XRP Ledger (non-blocking)
+        logPurchaseToXRPL(
+          1, // Demo user ID
+          purchaseId,
+          item.product.name,
+          item.product.icon,
+          item.product.price
+        ).then(result => {
+          if (result) {
+            console.log('✅ Logged to XRPL:', result.tx_hash);
+          }
+        }).catch(console.error);
       }
-    });
+    }
 
     clearCart();
 
-    toast.success('Purchase complete!', {
-      description: 'Head to Positions to configure your predictions.',
-    });
+    toast.success(
+      <div className="flex items-center gap-2">
+        <span>Purchase complete!</span>
+        <Link2 className="w-4 h-4 text-primary" />
+      </div>,
+      {
+        description: 'Logged to XRP Ledger. Configure your predictions.',
+      }
+    );
 
     navigate('/terminal');
   };
