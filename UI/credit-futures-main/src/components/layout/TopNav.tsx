@@ -4,7 +4,7 @@ import { useAppStore } from '@/store/appStore';
 import { ShoppingCart } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { label: 'BANK', path: '/' },
+  { label: 'BANK', path: '/bank' },
   { label: 'SHOP', path: '/shop' },
   { label: 'TERMINAL', path: '/terminal' },
   { label: 'HISTORY', path: '/history' },
