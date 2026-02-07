@@ -1,13 +1,15 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/appStore';
 import { cn } from '@/lib/utils';
 import {
   TrendingUp, TrendingDown, AlertCircle, DollarSign,
-  Activity, Target, ArrowUpRight, ArrowDownRight, Wallet, Compass
+  Activity, Target, ArrowUpRight, ArrowDownRight, Wallet, Compass, ExternalLink, Link2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { calculatePositionPnL, CATEGORY_CONFIG } from '@/services/kalshiService';
+import { getUserWallet, checkXRPLStatus, type XRPLWalletInfo } from '@/services/xrplService';
 
 const StatCard = ({
   label,
@@ -61,6 +63,113 @@ const StatCard = ({
         <div className="text-sm text-muted-foreground mt-1">{subValue}</div>
       )}
     </div>
+  );
+};
+
+// XRPL Wallet Section Component
+const XRPLWalletSection = () => {
+  const [wallet, setWallet] = useState<XRPLWalletInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [connected, setConnected] = useState(false);
+
+  useEffect(() => {
+    const loadWallet = async () => {
+      const status = await checkXRPLStatus();
+      setConnected(!!status);
+
+      if (status) {
+        const walletData = await getUserWallet(1); // Demo user ID
+        setWallet(walletData);
+      }
+      setLoading(false);
+    };
+    loadWallet();
+  }, []);
+
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-5 mb-6"
+      >
+        <div className="animate-pulse flex items-center gap-4">
+          <div className="w-12 h-12 bg-slate-700 rounded-lg"></div>
+          <div className="flex-1">
+            <div className="h-4 bg-slate-700 rounded w-48 mb-2"></div>
+            <div className="h-3 bg-slate-700 rounded w-32"></div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-5 mb-6"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+            <Link2 className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-white">XRP Ledger Wallet</h3>
+              <div className={cn(
+                "px-2 py-0.5 rounded-full text-xs font-medium",
+                connected ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
+              )}>
+                {connected ? '● Connected' : '○ Offline'}
+              </div>
+            </div>
+            {wallet ? (
+              <p className="text-slate-400 text-sm font-mono">
+                {wallet.wallet_address.slice(0, 12)}...{wallet.wallet_address.slice(-8)}
+              </p>
+            ) : (
+              <p className="text-slate-400 text-sm">
+                Start XRPL backend to view wallet
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          {wallet && (
+            <div className="text-right">
+              <div className="text-white font-semibold">
+                {wallet.balance_xrp.toFixed(2)} XRP
+              </div>
+              <div className="text-slate-400 text-sm">Balance</div>
+            </div>
+          )}
+
+          {wallet && (
+            <a
+              href={wallet.explorer_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-colors text-sm font-medium"
+            >
+              View on Explorer
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 pt-4 border-t border-slate-700/50 flex items-center gap-6 text-sm">
+        <div className="text-slate-400">
+          Network: <span className="text-slate-300">XRPL Testnet</span>
+        </div>
+        <div className="text-slate-400">
+          All purchases & settlements logged to blockchain
+        </div>
+      </div>
+    </motion.div>
   );
 };
 
@@ -186,6 +295,9 @@ const Bank = () => {
           />
         </motion.div>
       </div>
+
+      {/* XRPL Wallet Section */}
+      <XRPLWalletSection />
 
       {/* Two Column Layout */}
       <div className="grid lg:grid-cols-2 gap-6">
