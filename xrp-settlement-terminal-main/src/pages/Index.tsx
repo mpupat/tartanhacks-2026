@@ -1,144 +1,181 @@
-import { useMemo } from 'react';
-import { Header } from '@/components/Header';
-import { PriceTicker } from '@/components/PriceTicker';
-import { PortfolioSummary } from '@/components/PortfolioSummary';
-import { PositionsGrid } from '@/components/PositionsGrid';
-import { ActivityFeed } from '@/components/ActivityFeed';
-import { MiniChart } from '@/components/MiniChart';
+import { PriceChart } from '@/components/PriceChart';
+import { PositionForm } from '@/components/PositionFormNew';
+import { PositionMonitor } from '@/components/PositionMonitorNew';
+import { MonthlyStatement } from '@/components/MonthlyStatementNew';
+import { SpendingHistory } from '@/components/SpendingHistoryNew';
+import { DashboardStats } from '@/components/DashboardStatsNew';
 import { useXRPPrice } from '@/hooks/useXRPPrice';
-import { mockPositions, mockActivities, calculatePnL } from '@/data/mockData';
+import { useXRPL } from '@/context/XRPLProvider';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import {
+  TrendingUp,
+  CreditCard,
+  Receipt,
+  BarChart3,
+  Wallet,
+  ArrowUpRight,
+  ArrowDownRight,
+  Coins
+} from 'lucide-react';
 
 const Index = () => {
-  const { priceData, priceHistory, hasUpdated } = useXRPPrice();
-
-  const portfolioStats = useMemo(() => {
-    let totalCredit = 0;
-    let totalXRPValue = 0;
-    let netPnL = 0;
-
-    mockPositions.forEach(position => {
-      totalCredit += position.purchaseAmount;
-      const { currentValue, pnl } = calculatePnL(position, priceData.price);
-      totalXRPValue += currentValue;
-      netPnL += pnl;
-    });
-
-    const netPnLPercent = totalCredit > 0 ? (netPnL / totalCredit) * 100 : 0;
-
-    return {
-      totalCredit,
-      totalXRPValue,
-      netPnL,
-      netPnLPercent,
-      successRate: 78.5,
-      activePositions: mockPositions.length,
-    };
-  }, [priceData.price]);
-
-  const chartData = priceHistory.map(p => ({ price: p.price }));
+  const { priceData } = useXRPPrice();
+  const { wallet, generateWallet, connectionStatus } = useXRPL();
+  const isPositive = priceData.changePercent24h >= 0;
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header currentPrice={priceData.price} />
-
-      {/* Ticker Tape */}
-      <div className="border-b border-border-subtle bg-card/30 overflow-hidden">
-        <div className="flex items-center gap-8 py-2 px-4 ticker-tape whitespace-nowrap">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="flex items-center gap-8">
-              <span className="text-sm">
-                <span className="text-muted-foreground">XRP/USD</span>
-                <span className="ml-2 text-success">${priceData.price.toFixed(6)}</span>
-              </span>
-              <span className="text-sm">
-                <span className="text-muted-foreground">BTC/USD</span>
-                <span className="ml-2 text-success">$67,842.50</span>
-              </span>
-              <span className="text-sm">
-                <span className="text-muted-foreground">ETH/USD</span>
-                <span className="ml-2 text-destructive">$3,521.18</span>
-              </span>
-              <span className="text-sm">
-                <span className="text-muted-foreground">SOL/USD</span>
-                <span className="ml-2 text-success">$172.45</span>
-              </span>
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-[#0a0a0a]/95 backdrop-blur border-b border-amber-500/10">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20">
+              <Coins className="w-5 h-5 text-white" />
             </div>
-          ))}
-        </div>
-      </div>
-
-      <main className="container px-4 py-4">
-        {/* Top Row: Price + Portfolio + Chart */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4">
-          <div className="lg:col-span-5">
-            <PriceTicker
-              price={priceData.price}
-              change24h={priceData.change24h}
-              changePercent24h={priceData.changePercent24h}
-              high24h={priceData.high24h}
-              low24h={priceData.low24h}
-              volume24h={priceData.volume24h}
-              hasUpdated={hasUpdated}
-            />
-          </div>
-
-          <div className="lg:col-span-4">
-            <PortfolioSummary {...portfolioStats} />
-          </div>
-
-          <div className="lg:col-span-3">
-            <div className="terminal-grid p-4 h-full flex flex-col justify-center">
-              <div className="flex items-center justify-between mb-2">
-                <span className="terminal-header text-xs">60M TREND</span>
-                <span className={priceData.changePercent24h >= 0 ? 'text-success text-sm' : 'text-destructive text-sm'}>
-                  {priceData.changePercent24h >= 0 ? '+' : ''}{priceData.changePercent24h.toFixed(2)}%
-                </span>
-              </div>
-              <div className="flex-1 min-h-[100px]">
-                <MiniChart data={chartData} isPositive={priceData.changePercent24h >= 0} />
-              </div>
+            <div>
+              <span className="font-bold text-lg bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
+                CrypTomorrow
+              </span>
+              <div className="text-[10px] text-amber-500/60 -mt-1">Predict. Save. Win.</div>
             </div>
           </div>
-        </div>
 
-        {/* Main Content: Positions + Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          <div className="lg:col-span-9">
-            <PositionsGrid positions={mockPositions} currentPrice={priceData.price} />
-          </div>
+          <nav className="hidden md:flex items-center gap-6">
+            <a href="#" className="text-white/60 hover:text-amber-400 transition">Home</a>
+            <a href="#" className="text-white/60 hover:text-amber-400 transition">Predictions</a>
+            <a href="#" className="text-white/60 hover:text-amber-400 transition">Card</a>
+            <a href="#" className="text-white/60 hover:text-amber-400 transition">Rewards</a>
+          </nav>
 
-          <div className="lg:col-span-3">
-            <ActivityFeed activities={mockActivities} />
-          </div>
-        </div>
-
-        {/* Footer Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-          <div className="terminal-grid p-3 text-center">
-            <span className="terminal-header text-2xs block mb-1">TOTAL SETTLED</span>
-            <span className="text-lg font-bold text-success">$24,892.45</span>
-          </div>
-          <div className="terminal-grid p-3 text-center">
-            <span className="terminal-header text-2xs block mb-1">TOTAL SAVINGS</span>
-            <span className="text-lg font-bold text-success">+$2,847.32</span>
-          </div>
-          <div className="terminal-grid p-3 text-center">
-            <span className="terminal-header text-2xs block mb-1">AVG SETTLEMENT</span>
-            <span className="text-lg font-bold">-8.4%</span>
-          </div>
-          <div className="terminal-grid p-3 text-center">
-            <span className="terminal-header text-2xs block mb-1">BOUNCED</span>
-            <span className="text-lg font-bold text-destructive">3</span>
+          <div className="flex items-center gap-3">
+            <span className={`text-xs px-2 py-1 rounded-full ${connectionStatus === 'connected'
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+              }`}>
+              {connectionStatus === 'connected' ? '● Testnet' : '○ Connecting...'}
+            </span>
+            {wallet ? (
+              <Button variant="outline" size="sm" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10">
+                <Wallet className="w-4 h-4 mr-2" />
+                {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
+              </Button>
+            ) : (
+              <Button
+                onClick={generateWallet}
+                className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-semibold shadow-lg shadow-amber-500/25"
+              >
+                Get Started
+              </Button>
+            )}
           </div>
         </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-6">
+        {/* Hero Price Section */}
+        <div className="mb-8">
+          <div className="flex items-baseline gap-3 mb-1">
+            <h1 className="text-5xl font-bold tracking-tight">
+              ${priceData.price.toFixed(2)}
+            </h1>
+            <div className={`flex items-center gap-1 ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+              {isPositive ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
+              <span className="text-lg font-medium">
+                {isPositive ? '+' : ''}{priceData.changePercent24h.toFixed(2)}%
+              </span>
+            </div>
+          </div>
+          <p className="text-white/40 text-sm">XRP • Past 24 hours</p>
+        </div>
+
+        {/* Price Chart */}
+        <div className="mb-8">
+          <PriceChart height={250} />
+
+          {/* Time periods */}
+          <div className="flex gap-4 mt-4 justify-center">
+            {['1H', '1D', '1W', '1M', '1Y', 'ALL'].map((period, i) => (
+              <button
+                key={period}
+                className={`px-4 py-2 rounded-full text-sm transition ${i === 1
+                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    : 'text-white/40 hover:text-white hover:bg-white/5'
+                  }`}
+              >
+                {period}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="mb-8">
+          <DashboardStats />
+        </div>
+
+        {/* Main Content */}
+        <Tabs defaultValue="predict" className="space-y-6">
+          <TabsList className="bg-white/5 border border-amber-500/10 p-1 rounded-xl">
+            <TabsTrigger
+              value="predict"
+              className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 rounded-lg px-4 py-2"
+            >
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Predict
+            </TabsTrigger>
+            <TabsTrigger
+              value="positions"
+              className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 rounded-lg px-4 py-2"
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Positions
+            </TabsTrigger>
+            <TabsTrigger
+              value="card"
+              className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 rounded-lg px-4 py-2"
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Card
+            </TabsTrigger>
+            <TabsTrigger
+              value="statement"
+              className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 rounded-lg px-4 py-2"
+            >
+              <Receipt className="w-4 h-4 mr-2" />
+              Statement
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="predict">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <PositionForm />
+              <PositionMonitor />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="positions">
+            <PositionMonitor />
+          </TabsContent>
+
+          <TabsContent value="card">
+            <SpendingHistory />
+          </TabsContent>
+
+          <TabsContent value="statement">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <MonthlyStatement />
+              <SpendingHistory />
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border-subtle mt-8 py-3">
-        <div className="container px-4 flex items-center justify-between text-2xs text-muted-foreground">
-          <span>NEXUS CREDIT SETTLEMENT PLATFORM v2.4.1</span>
-          <span>MARKET DATA DELAYED 15 MIN • FOR SIMULATION PURPOSES ONLY</span>
-          <span>© 2024 NEXUS FINANCIAL</span>
+      <footer className="border-t border-amber-500/10 mt-12 py-4">
+        <div className="container mx-auto px-4 flex items-center justify-between text-xs text-white/30">
+          <span>© 2024 CrypTomorrow</span>
+          <span className="text-amber-500/50">Powered by XRPL Testnet</span>
         </div>
       </footer>
     </div>

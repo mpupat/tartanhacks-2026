@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { fetchXRPPrice, fetchXRPPriceSimple, type RealPriceData } from '@/services/priceService';
 
 interface PriceData {
   price: number;
@@ -10,72 +11,121 @@ interface PriceData {
   lastUpdate: Date;
 }
 
-const BASE_PRICE = 0.5882;
-const VOLATILITY = 0.002;
-
-function generatePriceChange(): number {
-  return (Math.random() - 0.5) * 2 * VOLATILITY;
-}
+// Default values while loading
+const DEFAULT_PRICE_DATA: PriceData = {
+  price: 2.45,
+  change24h: 0,
+  changePercent24h: 0,
+  high24h: 2.50,
+  low24h: 2.40,
+  volume24h: 0,
+  lastUpdate: new Date(),
+};
 
 export function useXRPPrice() {
-  const [priceData, setPriceData] = useState<PriceData>({
-    price: BASE_PRICE,
-    change24h: 0.0142,
-    changePercent24h: 2.47,
-    high24h: 0.6012,
-    low24h: 0.5720,
-    volume24h: 1_247_892_453,
-    lastUpdate: new Date(),
-  });
-
-  const [priceHistory, setPriceHistory] = useState<{ time: Date; price: number }[]>(() => {
-    const history: { time: Date; price: number }[] = [];
-    const now = new Date();
-    let price = BASE_PRICE * 0.98;
-    
-    for (let i = 60; i >= 0; i--) {
-      price = price + (Math.random() - 0.48) * 0.003;
-      price = Math.max(0.55, Math.min(0.62, price));
-      history.push({
-        time: new Date(now.getTime() - i * 60 * 1000),
-        price,
-      });
-    }
-    return history;
-  });
-
+  const [priceData, setPriceData] = useState<PriceData>(DEFAULT_PRICE_DATA);
+  const [priceHistory, setPriceHistory] = useState<{ time: Date; price: number }[]>([]);
   const [hasUpdated, setHasUpdated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const lastPrice = useRef<number>(DEFAULT_PRICE_DATA.price);
 
+  // Initial fetch of full price data
   useEffect(() => {
-    const interval = setInterval(() => {
-      setPriceData(prev => {
-        const change = generatePriceChange();
-        const newPrice = Math.max(0.50, Math.min(0.70, prev.price + prev.price * change));
-        const newChange = newPrice - BASE_PRICE;
-        const newChangePercent = (newChange / BASE_PRICE) * 100;
-        
-        return {
-          ...prev,
-          price: newPrice,
-          change24h: newChange,
-          changePercent24h: newChangePercent,
-          high24h: Math.max(prev.high24h, newPrice),
-          low24h: Math.min(prev.low24h, newPrice),
+    const fetchInitialPrice = async () => {
+      try {
+        const data = await fetchXRPPrice();
+        const newPriceData: PriceData = {
+          price: data.price,
+          change24h: data.change24h,
+          changePercent24h: data.changePercent24h,
+          high24h: data.high24h,
+          low24h: data.low24h,
+          volume24h: data.volume24h,
           lastUpdate: new Date(),
         };
-      });
+        setPriceData(newPriceData);
+        lastPrice.current = data.price;
 
-      setPriceHistory(prev => {
-        const newHistory = [...prev.slice(-59), { time: new Date(), price: priceData.price }];
-        return newHistory;
-      });
+        // Initialize price history with the current price
+        const history: { time: Date; price: number }[] = [];
+        const now = new Date();
+        for (let i = 60; i >= 0; i--) {
+          // Simulate slight variations around current price for history
+          const variation = (Math.random() - 0.5) * 0.02 * data.price;
+          history.push({
+            time: new Date(now.getTime() - i * 60 * 1000),
+            price: data.price + variation,
+          });
+        }
+        setPriceHistory(history);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Failed to fetch initial price:', error);
+        setIsLoading(false);
+      }
+    };
 
-      setHasUpdated(true);
-      setTimeout(() => setHasUpdated(false), 500);
-    }, 1000);
+    fetchInitialPrice();
+  }, []);
 
-    return () => clearInterval(interval);
-  }, [priceData.price]);
+  // Periodic price updates (every 15 seconds for simple price, full data every 60s)
+  useEffect(() => {
+    // Quick price update every 15 seconds
+    const quickInterval = setInterval(async () => {
+      try {
+        const price = await fetchXRPPriceSimple();
+        setPriceData(prev => {
+          const change24h = price - lastPrice.current;
+          const changePercent24h = (change24h / lastPrice.current) * 100;
 
-  return { priceData, priceHistory, hasUpdated };
+          return {
+            ...prev,
+            price,
+            change24h: prev.change24h, // Keep the real 24h change from full fetch
+            changePercent24h: prev.changePercent24h,
+            high24h: Math.max(prev.high24h, price),
+            low24h: Math.min(prev.low24h, price),
+            lastUpdate: new Date(),
+          };
+        });
+
+        // Update price history
+        setPriceHistory(prev => {
+          const newHistory = [...prev.slice(-59), { time: new Date(), price }];
+          return newHistory;
+        });
+
+        setHasUpdated(true);
+        setTimeout(() => setHasUpdated(false), 500);
+      } catch (error) {
+        console.error('Quick price update failed:', error);
+      }
+    }, 15000);
+
+    // Full data update every 60 seconds
+    const fullInterval = setInterval(async () => {
+      try {
+        const data = await fetchXRPPrice();
+        lastPrice.current = data.price;
+        setPriceData({
+          price: data.price,
+          change24h: data.change24h,
+          changePercent24h: data.changePercent24h,
+          high24h: data.high24h,
+          low24h: data.low24h,
+          volume24h: data.volume24h,
+          lastUpdate: new Date(),
+        });
+      } catch (error) {
+        console.error('Full price update failed:', error);
+      }
+    }, 60000);
+
+    return () => {
+      clearInterval(quickInterval);
+      clearInterval(fullInterval);
+    };
+  }, []);
+
+  return { priceData, priceHistory, hasUpdated, isLoading };
 }
