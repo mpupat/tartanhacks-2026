@@ -12,7 +12,7 @@ import type {
     MarketOrderbook,
     Position,
 } from '@/types/kalshi';
-
+import { computeHardMaxExpiryISO, clampExpiryISO } from "@/lib/risk";
 // ============================================
 // API CONFIGURATION
 // ============================================
@@ -81,6 +81,42 @@ export async function fetchMarkets(filters: MarketFilters = {}): Promise<KalshiM
         return [];
     }
 }
+
+
+export function buildPositionWithBoundedExpiry(input: {
+    market: KalshiMarket;
+    prediction_direction: "YES" | "NO";
+    purchase_amount: number;
+    max_loss_percent?: number;
+    max_reward_percent?: number;
+    requested_expires_at_iso: string;
+}): Position {
+    const hardMax = computeHardMaxExpiryISO({
+        market: input.market,
+        purchaseAmount: input.purchase_amount,
+        maxLossPercent: input.max_loss_percent,
+        maxRewardPercent: input.max_reward_percent,
+    });
+
+    const expiresAt = clampExpiryISO({
+        requestedExpiryISO: input.requested_expires_at_iso,
+        hardMaxExpiryISO: hardMax,
+    });
+
+    return {
+        // ...your other fields
+        status: "active",
+        prediction_direction: input.prediction_direction,
+        max_loss_percent: input.max_loss_percent ?? 5,
+        max_reward_percent: input.max_reward_percent ?? 20,
+        expires_at: expiresAt,
+
+        // optional: store these for UI messaging
+        // hard_max_expires_at: hardMax,
+        // created_at: new Date().toISOString(),
+    } as Position;
+}
+
 
 // Fallback: Fetch events, then fetch markets for a selection of events
 async function fetchMarketsViaEvents(filters: MarketFilters = {}): Promise<KalshiMarket[]> {
