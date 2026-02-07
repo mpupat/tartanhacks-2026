@@ -16,6 +16,7 @@ export type MarketCategory =
     | 'elections'
     | 'companies'
     | 'transportation'
+    | 'weather'
     | 'other';
 
 export type MarketStatus = 'active' | 'closed' | 'settled' | 'open';
