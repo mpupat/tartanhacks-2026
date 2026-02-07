@@ -4,10 +4,10 @@ import { useAppStore } from '@/store/appStore';
 import { ShoppingCart } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { label: 'BANK', path: '/bank' },
-  { label: 'SHOP', path: '/shop' },
-  { label: 'TERMINAL', path: '/terminal' },
-  { label: 'HISTORY', path: '/history' },
+  { label: 'Dashboard', path: '/bank' },
+  { label: 'Store', path: '/shop' },
+  { label: 'Positions', path: '/terminal' },
+  { label: 'History', path: '/history' },
 ];
 
 export const TopNav = () => {
@@ -16,13 +16,15 @@ export const TopNav = () => {
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <header className="border-b border-grid-line bg-background sticky top-0 z-50">
-      <div className="container flex items-center justify-between h-12">
+    <header className="border-b border-border bg-white sticky top-0 z-50 shadow-sm">
+      <div className="container flex items-center justify-between h-16">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-profit rounded-full pulse-glow" />
-          <span className="text-sm font-bold tracking-widest text-profit">
-            CRYPTO TOMORROW
+          <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-sm">W</span>
+          </div>
+          <span className="text-lg font-bold text-foreground">
+            Winback
           </span>
         </Link>
 
@@ -33,11 +35,10 @@ export const TopNav = () => {
               key={item.path}
               to={item.path}
               className={cn(
-                'px-4 py-3 text-xs font-semibold tracking-wider transition-colors',
-                'border-b-2 -mb-[1px]',
+                'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
                 location.pathname === item.path
-                  ? 'text-profit border-profit neon-green'
-                  : 'text-muted-foreground border-transparent hover:text-foreground hover:border-muted-foreground'
+                  ? 'text-primary bg-primary/5'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               )}
             >
               {item.label}
@@ -48,11 +49,11 @@ export const TopNav = () => {
         {/* Cart */}
         <Link
           to="/shop/cart"
-          className="relative flex items-center gap-2 px-3 py-2 text-xs font-semibold tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+          className="relative flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
         >
-          <ShoppingCart className="w-4 h-4" />
+          <ShoppingCart className="w-5 h-5" />
           {cartCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-profit text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center shadow-sm">
               {cartCount}
             </span>
           )}

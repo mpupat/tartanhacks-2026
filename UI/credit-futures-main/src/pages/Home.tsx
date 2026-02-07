@@ -1,16 +1,19 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { 
-  ShoppingCart, 
-  TrendingUp, 
-  Settings, 
-  BarChart3, 
-  Shield, 
-  Lock, 
+import {
+  ShoppingCart,
+  TrendingUp,
+  Settings,
+  BarChart3,
+  Shield,
+  Lock,
   Zap,
   ChevronRight,
   Check,
-  ArrowRight
+  ArrowRight,
+  Sparkles,
+  Target,
+  Wallet
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -25,64 +28,73 @@ const NAV_LINKS = [
 const STEPS = [
   {
     number: '01',
-    title: 'PURCHASE',
-    description: 'Buy any item from our marketplace using crypto-backed credit. No upfront payment required.',
+    title: 'Shop Anywhere',
+    description: 'Use your Winback card for everyday purchases. No upfront payment required.',
     icon: ShoppingCart,
+    color: 'bg-blue-50 text-blue-600 border-blue-100',
   },
   {
     number: '02',
-    title: 'AUTO-INVEST',
-    description: 'Your purchase amount is automatically invested into XRP by our financial institution.',
+    title: 'Make a Prediction',
+    description: 'After checkout, predict if your chosen asset will go up or down.',
     icon: TrendingUp,
+    color: 'bg-emerald-50 text-emerald-600 border-emerald-100',
   },
   {
     number: '03',
-    title: 'CONFIGURE',
-    description: 'View your position on the terminal. Choose LONG or SHORT direction and set settlement bounds.',
+    title: 'Set Your Terms',
+    description: 'Choose your potential cashback reward and your max downside.',
     icon: Settings,
+    color: 'bg-amber-50 text-amber-600 border-amber-100',
   },
   {
     number: '04',
-    title: 'MONITOR',
-    description: 'Track real-time P&L as XRP moves. Watch your position approach settlement or breach bounds.',
+    title: 'Track Progress',
+    description: 'Watch your prediction in real-time. See potential winback grow.',
     icon: BarChart3,
+    color: 'bg-purple-50 text-purple-600 border-purple-100',
   },
   {
     number: '05',
-    title: 'SETTLE',
-    description: 'Position settles within your bounds. Pay less, pay more, or bounce—full transparency.',
-    icon: Check,
+    title: 'Winback',
+    description: 'Correct prediction? Get cashback. Wrong? Pay a small premium.',
+    icon: Sparkles,
+    color: 'bg-rose-50 text-rose-600 border-rose-100',
   },
 ];
 
 const DIFFERENTIATORS = [
   {
-    title: 'TERMINAL-GRADE TRANSPARENCY',
-    description: 'Every data point visible. Every calculation shown. No hidden fees, no opaque algorithms.',
+    title: 'Transparent Pricing',
+    description: 'See exactly how much you can win or lose. No hidden fees, no surprises.',
+    icon: Target,
   },
   {
-    title: 'BOUNDS-BASED SETTLEMENT',
-    description: 'Define your max and min payment thresholds. Control your risk exposure with precision.',
+    title: 'Controlled Risk',
+    description: 'Set your own limits. Maximum potential loss is always capped at your terms.',
+    icon: Shield,
   },
   {
-    title: 'SPECULATE ON YOUR DEBT',
-    description: 'Turn purchases into trading opportunities. Go LONG or SHORT on your own credit obligations.',
+    title: 'Gamified Savings',
+    description: 'Turn every purchase into an opportunity. Make saving money exciting.',
+    icon: Sparkles,
   },
   {
-    title: 'REAL-TIME MONITORING',
-    description: 'Live XRP price feeds. Instant P&L updates. Position status changes as markets move.',
+    title: 'Real-Time Tracking',
+    description: 'Monitor your predictions live. Know exactly where you stand, always.',
+    icon: BarChart3,
   },
 ];
 
 const PRICING_TIERS = [
   {
-    name: 'FREE',
+    name: 'Free',
     price: '$0',
     period: '/month',
-    description: 'For individuals testing the platform',
+    description: 'Perfect for getting started',
     features: [
-      'Up to 5 active positions',
-      'Basic settlement bounds',
+      'Up to 5 active predictions',
+      'Basic reward limits',
       '24h price history',
       'Email support',
     ],
@@ -90,13 +102,13 @@ const PRICING_TIERS = [
     highlighted: false,
   },
   {
-    name: 'PRO',
-    price: '$49',
+    name: 'Pro',
+    price: '$29',
     period: '/month',
-    description: 'For active traders and small businesses',
+    description: 'For active predictors',
     features: [
-      'Unlimited positions',
-      'Advanced bounds configuration',
+      'Unlimited predictions',
+      'Advanced limit configuration',
       '30-day price history',
       'Priority support',
       'CSV export',
@@ -106,15 +118,15 @@ const PRICING_TIERS = [
     highlighted: true,
   },
   {
-    name: 'INSTITUTIONAL',
+    name: 'Business',
     price: 'Custom',
     period: '',
-    description: 'For enterprises and financial institutions',
+    description: 'For teams and enterprises',
     features: [
       'Everything in Pro',
       'Dedicated account manager',
       'Custom settlement rules',
-      'Bulk position management',
+      'Team management',
       'SLA guarantees',
       'White-label options',
     ],
@@ -125,24 +137,24 @@ const PRICING_TIERS = [
 
 const FAQS = [
   {
-    question: 'How does LONG/SHORT affect my payment?',
-    answer: 'LONG benefits you if XRP rises—your final payment decreases. SHORT benefits you if XRP falls. Your direction determines whether market moves work for or against you.',
+    question: 'How does the prediction affect my payment?',
+    answer: 'If you predict correctly, you receive cashback on your purchase. If your prediction is wrong, you pay a small premium. The maximum premium is always capped at the limit you set.',
   },
   {
-    question: 'What happens if my bounds are breached?',
-    answer: 'If XRP moves beyond your max or min bound, the position "bounces" and settles at the breached limit. You pay the max if price moves against you past that threshold.',
+    question: 'What happens if I reach my limit?',
+    answer: 'Your prediction automatically settles at your set limit. You\'ll never pay more than your maximum downside setting.',
   },
   {
-    question: 'Can I close a position early?',
-    answer: 'Yes. You can manually close any active position before its time limit expires. Settlement occurs at current market conditions.',
+    question: 'Can I close a prediction early?',
+    answer: 'Yes. You can settle any active prediction at current market conditions whenever you want.',
   },
   {
     question: 'Is this gambling?',
-    answer: 'This is speculative trading on crypto-backed credit. Like any financial instrument, outcomes are uncertain. We provide tools for risk management, not guarantees. Trade responsibly.',
+    answer: 'Winback is a financial product that adds a prediction element to your purchases. Like any financial product, outcomes vary. We provide tools for risk management and full transparency.',
   },
   {
-    question: 'How is my payment calculated?',
-    answer: 'Final payment = Original purchase × (Entry XRP Price / Settlement XRP Price) for LONG, or the inverse for SHORT, clamped within your configured bounds.',
+    question: 'How is my cashback calculated?',
+    answer: 'Your reward is based on the price movement of your chosen asset from when you made your purchase to when your prediction settles, capped within your configured limits.',
   },
 ];
 
@@ -150,12 +162,14 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Navigation */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-grid-line bg-background/95 backdrop-blur">
-        <div className="container flex items-center justify-between h-14">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-white/95 backdrop-blur">
+        <div className="container flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-profit rounded-full pulse-glow" />
-            <span className="text-sm font-bold tracking-widest text-profit">
-              CRYPTO TOMORROW
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">W</span>
+            </div>
+            <span className="text-lg font-bold text-foreground">
+              Winback
             </span>
           </Link>
 
@@ -164,7 +178,7 @@ export default function Home() {
               <a
                 key={link.href}
                 href={link.href}
-                className="text-xs font-semibold tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 {link.label}
               </a>
@@ -173,13 +187,13 @@ export default function Home() {
 
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" asChild>
-              <Link to="/auth?mode=login" className="text-xs tracking-wider">
-                LOG IN
+              <Link to="/auth?mode=login">
+                Log In
               </Link>
             </Button>
-            <Button size="sm" asChild className="bg-profit text-background hover:bg-profit/90">
-              <Link to="/auth?mode=signup" className="text-xs tracking-wider font-bold">
-                GET STARTED
+            <Button size="sm" asChild>
+              <Link to="/auth?mode=signup">
+                Get Started
               </Link>
             </Button>
           </div>
@@ -187,9 +201,7 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--grid-line))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--grid-line))_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30" />
-        
+      <section className="pt-32 pb-20 relative overflow-hidden bg-gradient-to-b from-blue-50/50 to-background">
         <div className="container relative">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <motion.div
@@ -197,100 +209,103 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <div className="inline-block px-3 py-1 border border-profit/30 bg-profit/10 text-profit text-xs font-bold tracking-widest mb-6">
-                CRYPTO-BACKED CREDIT PLATFORM
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-sm font-medium mb-6 border border-blue-100">
+                <Sparkles className="w-4 h-4" />
+                Every purchase is a play
               </div>
-              
+
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-                <span className="text-profit">SHOP TODAY.</span>
+                Shop. Predict.
                 <br />
-                <span className="text-foreground">SETTLE TOMORROW.</span>
+                <span className="text-primary">Winback.</span>
               </h1>
-              
+
               <p className="text-lg text-muted-foreground mb-8 max-w-lg leading-relaxed">
-                Purchase anything with crypto-backed credit. After checkout, decide whether to go 
-                <span className="text-profit font-semibold"> LONG </span>
-                or
-                <span className="text-loss font-semibold"> SHORT </span>
-                on XRP to influence your final payment. Trade your own debt.
+                Turn every purchase into a winning opportunity. Predict market movements and
+                earn cashback when you're right. Your risk is always limited to what you choose.
               </p>
-              
+
               <div className="flex flex-wrap gap-4">
-                <Button size="lg" asChild className="bg-profit text-background hover:bg-profit/90">
-                  <Link to="/auth?mode=signup" className="text-sm tracking-wider font-bold">
-                    GET STARTED
+                <Button size="lg" asChild>
+                  <Link to="/auth?mode=signup">
+                    Get Started
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>
                 </Button>
-                <Button size="lg" variant="outline" asChild className="border-grid-line">
-                  <Link to="/terminal" className="text-sm tracking-wider">
-                    VIEW DEMO
+                <Button size="lg" variant="outline" asChild>
+                  <Link to="/terminal">
+                    View Demo
                   </Link>
                 </Button>
               </div>
             </motion.div>
 
-            {/* Terminal Preview Mock */}
+            {/* Preview Card */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
               className="relative"
             >
-              <div className="border border-grid-line bg-card rounded-lg overflow-hidden shadow-2xl shadow-profit/10">
-                <div className="border-b border-grid-line px-4 py-2 flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-loss" />
-                  <div className="w-2 h-2 rounded-full bg-warning" />
-                  <div className="w-2 h-2 rounded-full bg-profit" />
-                  <span className="ml-4 text-xs text-muted-foreground tracking-wider">TERMINAL</span>
-                </div>
-                
-                <div className="p-4 space-y-3">
-                  {/* XRP Ticker Mock */}
-                  <div className="flex items-center justify-between border-b border-grid-line pb-3">
-                    <span className="text-xs text-muted-foreground tracking-wider">XRP/USD</span>
-                    <div className="text-right">
-                      <span className="text-xl font-bold text-profit font-mono">$0.512300</span>
-                      <span className="text-xs text-profit ml-2">+2.45%</span>
+              <div className="bg-white border border-border rounded-2xl overflow-hidden shadow-premium">
+                <div className="border-b border-border px-5 py-4 flex items-center justify-between bg-gradient-to-r from-slate-900 to-blue-900">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+                      <Wallet className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <div className="text-white font-semibold">Your Balance</div>
+                      <div className="text-blue-200 text-sm">Available to withdraw</div>
                     </div>
                   </div>
-                  
-                  {/* Position Rows Mock */}
+                  <div className="text-2xl font-bold text-white">$15,420.50</div>
+                </div>
+
+                <div className="p-5 space-y-4">
+                  {/* Position Rows */}
                   {[
-                    { name: 'CLOUD SERVER', status: 'ACTIVE', direction: 'LONG', pnl: '+$12.34', pnlColor: 'text-profit' },
-                    { name: 'MACBOOK PRO', status: 'ACTIVE', direction: 'SHORT', pnl: '-$45.00', pnlColor: 'text-loss' },
-                    { name: 'SSL CERTIFICATE', status: 'UNCONFIGURED', direction: 'UNSET', pnl: '$0.00', pnlColor: 'text-muted-foreground' },
+                    { name: 'Coffee Shop Purchase', status: 'Active', direction: 'up', pnl: '+$2.34', pnlPositive: true },
+                    { name: 'Online Electronics', status: 'Active', direction: 'down', pnl: '-$5.00', pnlPositive: false },
+                    { name: 'Grocery Store', status: 'Pending', direction: null, pnl: '$0.00', pnlPositive: null },
                   ].map((pos, i) => (
-                    <div key={i} className="flex items-center justify-between py-2 border-b border-grid-line/50 text-xs">
-                      <span className="text-foreground font-medium tracking-wide">{pos.name}</span>
-                      <div className="flex items-center gap-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          pos.status === 'ACTIVE' ? 'bg-profit/20 text-profit' : 'bg-warning/20 text-warning'
-                        }`}>
+                    <div key={i} className="flex items-center justify-between py-3 border-b border-border last:border-0">
+                      <div>
+                        <div className="font-medium">{pos.name}</div>
+                        <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${pos.status === 'Active' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                          }`}>
                           {pos.status}
                         </span>
-                        <span className={`font-mono ${pos.pnlColor}`}>{pos.pnl}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className={`font-semibold ${pos.pnlPositive === true ? 'text-emerald-600' :
+                            pos.pnlPositive === false ? 'text-red-500' : 'text-muted-foreground'
+                          }`}>
+                          {pos.pnl}
+                        </div>
+                        {pos.direction && (
+                          <span className={`text-xs ${pos.direction === 'up' ? 'text-blue-600' : 'text-rose-500'
+                            }`}>
+                            Predicted {pos.direction === 'up' ? '↑' : '↓'}
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-              
-              {/* Decorative Elements */}
-              <div className="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-r from-profit/5 via-transparent to-loss/5 blur-3xl" />
             </motion.div>
           </div>
         </div>
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-20 border-t border-grid-line">
+      <section id="how-it-works" className="py-20 border-t border-border">
         <div className="container">
           <div className="text-center mb-16">
-            <span className="text-xs text-profit tracking-widest font-bold">PROCESS</span>
-            <h2 className="text-3xl md:text-4xl font-bold mt-2 tracking-tight">HOW IT WORKS</h2>
+            <span className="text-sm font-medium text-primary">How It Works</span>
+            <h2 className="text-3xl md:text-4xl font-bold mt-2 tracking-tight">Five simple steps</h2>
             <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
-              From purchase to settlement in five transparent steps.
+              From purchase to winback in a transparent, straightforward process.
             </p>
           </div>
 
@@ -304,17 +319,16 @@ export default function Home() {
                 transition={{ delay: index * 0.1 }}
                 className="relative group"
               >
-                <div className="border border-grid-line bg-card p-6 h-full hover:border-profit/50 transition-colors">
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-2xl font-bold text-profit/50">{step.number}</span>
-                    <step.icon className="w-5 h-5 text-profit" />
+                <div className="bg-white border border-border rounded-xl p-6 h-full hover:shadow-card-hover hover:border-primary/20 transition-all duration-200">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 border ${step.color}`}>
+                    <step.icon className="w-6 h-6" />
                   </div>
-                  <h3 className="text-sm font-bold tracking-wider mb-2">{step.title}</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{step.description}</p>
+                  <h3 className="text-base font-semibold mb-2">{step.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
                 </div>
-                
+
                 {index < STEPS.length - 1 && (
-                  <ChevronRight className="hidden md:block absolute -right-4 top-1/2 -translate-y-1/2 w-6 h-6 text-grid-line z-10" />
+                  <ChevronRight className="hidden md:block absolute -right-4 top-1/2 -translate-y-1/2 w-6 h-6 text-border z-10" />
                 )}
               </motion.div>
             ))}
@@ -323,11 +337,11 @@ export default function Home() {
       </section>
 
       {/* Key Differentiators */}
-      <section id="product" className="py-20 border-t border-grid-line bg-card/30">
+      <section id="product" className="py-20 border-t border-border bg-muted/30">
         <div className="container">
           <div className="text-center mb-16">
-            <span className="text-xs text-profit tracking-widest font-bold">FEATURES</span>
-            <h2 className="text-3xl md:text-4xl font-bold mt-2 tracking-tight">WHY CRYPTO TOMORROW</h2>
+            <span className="text-sm font-medium text-primary">Features</span>
+            <h2 className="text-3xl md:text-4xl font-bold mt-2 tracking-tight">Why choose Winback</h2>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
@@ -338,12 +352,12 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="border border-grid-line bg-background p-8 hover:border-profit/50 transition-colors"
+                className="bg-white border border-border rounded-xl p-8 hover:shadow-card-hover hover:border-primary/20 transition-all duration-200"
               >
-                <div className="w-10 h-10 border border-profit/30 bg-profit/10 flex items-center justify-center mb-4">
-                  <Zap className="w-5 h-5 text-profit" />
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                  <item.icon className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="text-lg font-bold tracking-wider mb-3">{item.title}</h3>
+                <h3 className="text-lg font-semibold mb-3">{item.title}</h3>
                 <p className="text-muted-foreground leading-relaxed">{item.description}</p>
               </motion.div>
             ))}
@@ -352,47 +366,48 @@ export default function Home() {
       </section>
 
       {/* Security */}
-      <section id="security" className="py-20 border-t border-grid-line">
+      <section id="security" className="py-20 border-t border-border">
         <div className="container">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <span className="text-xs text-profit tracking-widest font-bold">SECURITY</span>
+              <span className="text-sm font-medium text-primary">Security</span>
               <h2 className="text-3xl md:text-4xl font-bold mt-2 tracking-tight mb-6">
-                BANK-GRADE PROTECTION
+                Bank-grade protection
               </h2>
               <p className="text-muted-foreground mb-8 leading-relaxed">
-                Your data and assets are protected with enterprise-level security infrastructure. 
-                Every transaction is encrypted, every position is auditable.
+                Your data and funds are protected with enterprise-level security.
+                Every transaction is encrypted, every prediction is auditable.
               </p>
-              
+
               <div className="space-y-4">
                 {[
                   { icon: Shield, text: 'End-to-end encryption on all data' },
-                  { icon: Lock, text: 'Secure cold storage for crypto assets' },
+                  { icon: Lock, text: 'Secure asset storage' },
                   { icon: Check, text: 'SOC 2 Type II compliant infrastructure' },
                   { icon: Check, text: 'Real-time fraud detection systems' },
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <div className="w-8 h-8 border border-profit/30 bg-profit/10 flex items-center justify-center">
-                      <item.icon className="w-4 h-4 text-profit" />
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <item.icon className="w-5 h-5 text-primary" />
                     </div>
-                    <span className="text-sm">{item.text}</span>
+                    <span className="text-sm font-medium">{item.text}</span>
                   </div>
                 ))}
               </div>
             </div>
-            
-            <div className="border border-warning/30 bg-warning/5 p-8">
+
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-8">
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 border border-warning/50 bg-warning/20 flex items-center justify-center flex-shrink-0">
-                  <span className="text-warning font-bold">!</span>
+                <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-amber-700 font-bold">!</span>
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold tracking-wider text-warning mb-2">RISK DISCLAIMER</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    CryptoTomorrow provides tools for crypto-backed credit settlement. This is not financial advice. 
-                    Settlement outcomes are determined by market conditions and may result in increased payment obligations. 
-                    Past performance does not guarantee future results. Trade responsibly and only with funds you can afford to lose.
+                  <h3 className="font-semibold text-amber-800 mb-2">Risk Disclosure</h3>
+                  <p className="text-sm text-amber-700 leading-relaxed">
+                    Winback involves predicting market movements. Outcomes are determined by market
+                    conditions and may result in paying more than your original purchase.
+                    Past performance does not guarantee future results. Only predict with amounts you're
+                    comfortable potentially paying extra on.
                   </p>
                 </div>
               </div>
@@ -402,11 +417,11 @@ export default function Home() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="py-20 border-t border-grid-line bg-card/30">
+      <section id="pricing" className="py-20 border-t border-border bg-muted/30">
         <div className="container">
           <div className="text-center mb-16">
-            <span className="text-xs text-profit tracking-widest font-bold">PRICING</span>
-            <h2 className="text-3xl md:text-4xl font-bold mt-2 tracking-tight">CHOOSE YOUR PLAN</h2>
+            <span className="text-sm font-medium text-primary">Pricing</span>
+            <h2 className="text-3xl md:text-4xl font-bold mt-2 tracking-tight">Choose your plan</h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
@@ -417,43 +432,39 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className={`border bg-background p-8 relative ${
-                  tier.highlighted 
-                    ? 'border-profit shadow-lg shadow-profit/20' 
-                    : 'border-grid-line'
-                }`}
+                className={`bg-white border rounded-xl p-8 relative ${tier.highlighted
+                    ? 'border-primary shadow-premium'
+                    : 'border-border'
+                  }`}
               >
                 {tier.highlighted && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-profit text-background text-xs font-bold tracking-wider">
-                    POPULAR
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
+                    Popular
                   </div>
                 )}
-                
-                <h3 className="text-sm font-bold tracking-widest mb-2">{tier.name}</h3>
+
+                <h3 className="text-lg font-semibold mb-2">{tier.name}</h3>
                 <div className="flex items-baseline gap-1 mb-2">
                   <span className="text-3xl font-bold">{tier.price}</span>
                   <span className="text-muted-foreground text-sm">{tier.period}</span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-6">{tier.description}</p>
-                
+                <p className="text-sm text-muted-foreground mb-6">{tier.description}</p>
+
                 <ul className="space-y-3 mb-8">
                   {tier.features.map((feature) => (
                     <li key={feature} className="flex items-center gap-2 text-sm">
-                      <Check className="w-4 h-4 text-profit flex-shrink-0" />
+                      <Check className="w-4 h-4 text-primary flex-shrink-0" />
                       <span>{feature}</span>
                     </li>
                   ))}
                 </ul>
-                
-                <Button 
-                  className={`w-full ${
-                    tier.highlighted 
-                      ? 'bg-profit text-background hover:bg-profit/90' 
-                      : 'bg-secondary'
-                  }`}
+
+                <Button
+                  className="w-full"
+                  variant={tier.highlighted ? 'default' : 'outline'}
                   asChild
                 >
-                  <Link to="/auth?mode=signup" className="text-xs tracking-wider font-bold">
+                  <Link to="/auth?mode=signup">
                     {tier.cta}
                   </Link>
                 </Button>
@@ -464,11 +475,11 @@ export default function Home() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-20 border-t border-grid-line">
+      <section id="faq" className="py-20 border-t border-border">
         <div className="container max-w-3xl">
           <div className="text-center mb-16">
-            <span className="text-xs text-profit tracking-widest font-bold">SUPPORT</span>
-            <h2 className="text-3xl md:text-4xl font-bold mt-2 tracking-tight">FREQUENTLY ASKED</h2>
+            <span className="text-sm font-medium text-primary">Support</span>
+            <h2 className="text-3xl md:text-4xl font-bold mt-2 tracking-tight">Frequently asked</h2>
           </div>
 
           <div className="space-y-4">
@@ -479,10 +490,10 @@ export default function Home() {
                 whileInView={{ opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.05 }}
-                className="group border border-grid-line bg-card"
+                className="group bg-white border border-border rounded-xl"
               >
-                <summary className="flex items-center justify-between p-6 cursor-pointer hover:bg-secondary/50 transition-colors">
-                  <span className="text-sm font-semibold tracking-wide pr-4">{faq.question}</span>
+                <summary className="flex items-center justify-between p-6 cursor-pointer hover:bg-muted/50 transition-colors rounded-xl">
+                  <span className="text-sm font-semibold pr-4">{faq.question}</span>
                   <ChevronRight className="w-4 h-4 text-muted-foreground group-open:rotate-90 transition-transform flex-shrink-0" />
                 </summary>
                 <div className="px-6 pb-6 pt-0">
@@ -495,17 +506,17 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 border-t border-grid-line bg-gradient-to-b from-background to-card">
+      <section className="py-20 border-t border-border bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
         <div className="container text-center">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-            READY TO TRADE YOUR DEBT?
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-white">
+            Ready to start winning?
           </h2>
-          <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
-            Join thousands of users speculating on their own credit obligations. Start shopping, start trading.
+          <p className="text-blue-200 mb-8 max-w-lg mx-auto">
+            Join thousands of users turning everyday purchases into winning opportunities.
           </p>
-          <Button size="lg" asChild className="bg-profit text-background hover:bg-profit/90">
-            <Link to="/auth?mode=signup" className="text-sm tracking-wider font-bold">
-              GET STARTED NOW
+          <Button size="lg" variant="secondary" asChild>
+            <Link to="/auth?mode=signup">
+              Get Started Now
               <ArrowRight className="w-4 h-4 ml-2" />
             </Link>
           </Button>
@@ -513,51 +524,53 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-grid-line py-12 bg-card">
+      <footer className="border-t border-border py-12 bg-white">
         <div className="container">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-2 h-2 bg-profit rounded-full" />
-                <span className="text-sm font-bold tracking-widest text-profit">CRYPTO TOMORROW</span>
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">W</span>
+                </div>
+                <span className="text-lg font-bold">Winback</span>
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Crypto-backed credit settlement platform. Shop today, settle tomorrow.
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Shop. Predict. Winback. Turn every purchase into a winning opportunity.
               </p>
             </div>
-            
+
             <div>
-              <h4 className="text-xs font-bold tracking-widest mb-4">PRODUCT</h4>
+              <h4 className="font-semibold mb-4">Product</h4>
               <ul className="space-y-2">
                 {['Features', 'Pricing', 'Security', 'Documentation'].map((link) => (
                   <li key={link}>
-                    <a href="#" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                       {link}
                     </a>
                   </li>
                 ))}
               </ul>
             </div>
-            
+
             <div>
-              <h4 className="text-xs font-bold tracking-widest mb-4">COMPANY</h4>
+              <h4 className="font-semibold mb-4">Company</h4>
               <ul className="space-y-2">
                 {['About', 'Blog', 'Careers', 'Press'].map((link) => (
                   <li key={link}>
-                    <a href="#" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                       {link}
                     </a>
                   </li>
                 ))}
               </ul>
             </div>
-            
+
             <div>
-              <h4 className="text-xs font-bold tracking-widest mb-4">LEGAL</h4>
+              <h4 className="font-semibold mb-4">Legal</h4>
               <ul className="space-y-2">
                 {['Terms of Service', 'Privacy Policy', 'Risk Disclosure', 'Compliance'].map((link) => (
                   <li key={link}>
-                    <a href="#" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                       {link}
                     </a>
                   </li>
@@ -565,13 +578,13 @@ export default function Home() {
               </ul>
             </div>
           </div>
-          
-          <div className="border-t border-grid-line pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-muted-foreground">
-              © {new Date().getFullYear()} CryptoTomorrow. All rights reserved.
+
+          <div className="border-t border-border pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-muted-foreground">
+              © {new Date().getFullYear()} Winback. All rights reserved.
             </p>
-            <p className="text-xs text-muted-foreground">
-              Not financial advice. Trade responsibly.
+            <p className="text-sm text-muted-foreground">
+              Not financial advice. Predict responsibly.
             </p>
           </div>
         </div>

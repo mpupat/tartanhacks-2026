@@ -5,8 +5,9 @@ import { usePositionCalculations } from '@/hooks/usePositionCalculations';
 import { XrpTicker } from '@/components/terminal/XrpTicker';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { cn } from '@/lib/utils';
-import { Settings, X, TrendingUp, TrendingDown, Clock, AlertTriangle, Target } from 'lucide-react';
+import { Settings, X, TrendingUp, TrendingDown, Clock, AlertCircle, Target, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 const PositionRow = ({
   position,
@@ -23,35 +24,35 @@ const PositionRow = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className={cn(
-        'grid grid-cols-9 gap-2 items-center py-3 px-4 border-b border-grid-line hover:bg-muted/30 transition-colors cursor-pointer',
-        position.status === 'UNCONFIGURED' && 'bg-warning/5',
-        calc.nearMaxBound && 'bg-loss/5',
-        calc.nearMinBound && 'bg-profit/5'
+        'grid grid-cols-9 gap-2 items-center py-4 px-5 border-b border-border hover:bg-muted/50 transition-colors cursor-pointer',
+        position.status === 'UNCONFIGURED' && 'bg-amber-50/50',
+        calc.nearMaxBound && 'bg-red-50/50',
+        calc.nearMinBound && 'bg-emerald-50/50'
       )}
       onClick={() => onConfigure(position)}
     >
       {/* Item Name */}
       <div className="col-span-2">
-        <div className="text-xs font-medium truncate">{position.productName}</div>
-        <div className="text-[10px] text-muted-foreground">ID: {position.id.slice(-6)}</div>
+        <div className="text-sm font-medium truncate">{position.productName}</div>
+        <div className="text-xs text-muted-foreground">ID: {position.id.slice(-6)}</div>
       </div>
 
       {/* Purchase Amount */}
       <div className="text-right">
-        <div className="text-xs mono-number">${position.purchaseAmount.toFixed(2)}</div>
-        <div className="text-[10px] text-muted-foreground">PURCHASE</div>
+        <div className="text-sm mono-number">${position.purchaseAmount.toFixed(2)}</div>
+        <div className="text-xs text-muted-foreground">Purchase</div>
       </div>
 
       {/* XRP Invested */}
       <div className="text-right">
-        <div className="text-xs mono-number">{position.xrpInvested.toFixed(2)}</div>
-        <div className="text-[10px] text-muted-foreground">XRP</div>
+        <div className="text-sm mono-number">{position.xrpInvested.toFixed(2)}</div>
+        <div className="text-xs text-muted-foreground">XRP</div>
       </div>
 
       {/* Current Value */}
       <div className="text-right">
-        <div className="text-xs mono-number">${calc.currentXrpValue.toFixed(2)}</div>
-        <div className="text-[10px] text-muted-foreground">VALUE</div>
+        <div className="text-sm mono-number">${calc.currentXrpValue.toFixed(2)}</div>
+        <div className="text-xs text-muted-foreground">Value</div>
       </div>
 
       {/* Direction */}
@@ -61,21 +62,25 @@ const PositionRow = ({
 
       {/* P&L */}
       <div className="text-right">
-        <div
-          className={cn(
-            'text-xs font-bold mono-number',
-            calc.isProfit && 'text-profit',
-            calc.isLoss && 'text-loss',
-            !calc.isProfit && !calc.isLoss && 'text-muted-foreground'
-          )}
-        >
-          {calc.isProfit ? '+' : ''}{calc.pnlPercent.toFixed(2)}%
+        <div className="flex items-center justify-end gap-1">
+          {calc.isProfit && <ArrowUp className="w-3 h-3 text-emerald-600" />}
+          {calc.isLoss && <ArrowDown className="w-3 h-3 text-red-500" />}
+          <span
+            className={cn(
+              'text-sm font-semibold mono-number',
+              calc.isProfit && 'text-emerald-600',
+              calc.isLoss && 'text-red-500',
+              !calc.isProfit && !calc.isLoss && 'text-muted-foreground'
+            )}
+          >
+            {calc.isProfit ? '+' : ''}{calc.pnlPercent.toFixed(2)}%
+          </span>
         </div>
         <div
           className={cn(
-            'text-[10px] mono-number',
-            calc.isProfit && 'text-profit',
-            calc.isLoss && 'text-loss',
+            'text-xs mono-number',
+            calc.isProfit && 'text-emerald-600',
+            calc.isLoss && 'text-red-500',
             !calc.isProfit && !calc.isLoss && 'text-muted-foreground'
           )}
         >
@@ -87,13 +92,13 @@ const PositionRow = ({
       <div className="text-right">
         {position.status === 'ACTIVE' ? (
           <>
-            <div className="text-xs mono-number">
+            <div className="text-sm mono-number">
               {calc.remainingDays}D {calc.remainingHours}H
             </div>
-            <div className="text-[10px] text-muted-foreground">REMAINING</div>
+            <div className="text-xs text-muted-foreground">Remaining</div>
           </>
         ) : (
-          <span className="text-[10px] text-muted-foreground">—</span>
+          <span className="text-xs text-muted-foreground">—</span>
         )}
       </div>
 
@@ -122,8 +127,8 @@ const ConfigurationModal = ({
 
   const handleConfigure = () => {
     configurePosition(position.id, direction, maxPayment, minPayment, timeLimit);
-    toast.success('POSITION CONFIGURED', {
-      description: `${position.productName} is now ${direction}`,
+    toast.success('Prediction configured', {
+      description: `${position.productName} is now ${direction === 'LONG' ? 'bullish' : 'bearish'}`,
     });
     onClose();
   };
@@ -141,65 +146,65 @@ const ConfigurationModal = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="w-full max-w-2xl bg-card border border-grid-line"
+        className="w-full max-w-2xl bg-white rounded-2xl shadow-premium"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-4 border-b border-grid-line flex items-center justify-between">
+        <div className="p-6 border-b border-border flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-bold tracking-wider">{position.productName}</h2>
-            <p className="text-[10px] text-muted-foreground">
-              CONFIGURE SETTLEMENT STRATEGY
+            <h2 className="text-lg font-semibold">{position.productName}</h2>
+            <p className="text-sm text-muted-foreground">
+              Configure your prediction strategy
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-muted transition-colors"
+            className="p-2 hover:bg-muted rounded-lg transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-4 space-y-6">
+        <div className="p-6 space-y-6">
           {/* Position Info */}
           <div className="grid grid-cols-4 gap-4">
-            <div className="border border-grid-line p-3">
-              <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
-                PURCHASE
+            <div className="bg-muted rounded-xl p-4">
+              <div className="text-xs text-muted-foreground mb-1">
+                Purchase
               </div>
               <div className="text-lg font-bold mono-number">
                 ${position.purchaseAmount.toFixed(2)}
               </div>
             </div>
-            <div className="border border-grid-line p-3">
-              <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
-                XRP INVESTED
+            <div className="bg-muted rounded-xl p-4">
+              <div className="text-xs text-muted-foreground mb-1">
+                XRP Amount
               </div>
               <div className="text-lg font-bold mono-number">
                 {position.xrpInvested.toFixed(2)}
               </div>
             </div>
-            <div className="border border-grid-line p-3">
-              <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
-                ENTRY PRICE
+            <div className="bg-muted rounded-xl p-4">
+              <div className="text-xs text-muted-foreground mb-1">
+                Entry Price
               </div>
               <div className="text-lg font-bold mono-number">
                 ${position.xrpEntryPrice.toFixed(6)}
               </div>
             </div>
-            <div className="border border-grid-line p-3">
-              <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
-                CURRENT PRICE
+            <div className="bg-muted rounded-xl p-4">
+              <div className="text-xs text-muted-foreground mb-1">
+                Current Price
               </div>
-              <div className="text-lg font-bold mono-number text-profit">
+              <div className="text-lg font-bold mono-number text-primary">
                 ${xrpPrice.toFixed(6)}
               </div>
             </div>
@@ -207,41 +212,51 @@ const ConfigurationModal = ({
 
           {/* Direction Selection */}
           <div>
-            <label className="text-[10px] text-muted-foreground uppercase tracking-widest block mb-2">
-              SELECT DIRECTION
+            <label className="text-sm font-medium block mb-3">
+              Select your prediction
             </label>
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => setDirection('LONG')}
                 className={cn(
-                  'p-4 border transition-colors flex items-center gap-3',
+                  'p-5 rounded-xl border-2 transition-all flex items-center gap-4',
                   direction === 'LONG'
-                    ? 'border-profit bg-profit/10'
-                    : 'border-grid-line hover:border-profit/50'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-border hover:border-blue-200'
                 )}
               >
-                <TrendingUp className={cn('w-6 h-6', direction === 'LONG' ? 'text-profit' : 'text-muted-foreground')} />
+                <div className={cn(
+                  'w-12 h-12 rounded-xl flex items-center justify-center',
+                  direction === 'LONG' ? 'bg-blue-500 text-white' : 'bg-muted text-muted-foreground'
+                )}>
+                  <TrendingUp className="w-6 h-6" />
+                </div>
                 <div className="text-left">
-                  <div className={cn('font-bold', direction === 'LONG' && 'text-profit')}>LONG</div>
-                  <div className="text-[10px] text-muted-foreground">
-                    PROFIT WHEN XRP RISES
+                  <div className={cn('font-semibold', direction === 'LONG' && 'text-blue-700')}>Going Up</div>
+                  <div className="text-sm text-muted-foreground">
+                    Winback if price rises
                   </div>
                 </div>
               </button>
               <button
                 onClick={() => setDirection('SHORT')}
                 className={cn(
-                  'p-4 border transition-colors flex items-center gap-3',
+                  'p-5 rounded-xl border-2 transition-all flex items-center gap-4',
                   direction === 'SHORT'
-                    ? 'border-loss bg-loss/10'
-                    : 'border-grid-line hover:border-loss/50'
+                    ? 'border-rose-500 bg-rose-50'
+                    : 'border-border hover:border-rose-200'
                 )}
               >
-                <TrendingDown className={cn('w-6 h-6', direction === 'SHORT' ? 'text-loss' : 'text-muted-foreground')} />
+                <div className={cn(
+                  'w-12 h-12 rounded-xl flex items-center justify-center',
+                  direction === 'SHORT' ? 'bg-rose-500 text-white' : 'bg-muted text-muted-foreground'
+                )}>
+                  <TrendingDown className="w-6 h-6" />
+                </div>
                 <div className="text-left">
-                  <div className={cn('font-bold', direction === 'SHORT' && 'text-loss')}>SHORT</div>
-                  <div className="text-[10px] text-muted-foreground">
-                    PROFIT WHEN XRP FALLS
+                  <div className={cn('font-semibold', direction === 'SHORT' && 'text-rose-700')}>Going Down</div>
+                  <div className="text-sm text-muted-foreground">
+                    Winback if price falls
                   </div>
                 </div>
               </button>
@@ -249,10 +264,10 @@ const ConfigurationModal = ({
           </div>
 
           {/* Bounds Configuration */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="text-[10px] text-muted-foreground uppercase tracking-widest block mb-2">
-                MAX PAYMENT (+{maxPct.toFixed(1)}%)
+              <label className="text-sm font-medium block mb-2">
+                Max payment (+{maxPct.toFixed(1)}% extra)
               </label>
               <input
                 type="range"
@@ -261,15 +276,15 @@ const ConfigurationModal = ({
                 step={0.01}
                 value={maxPayment}
                 onChange={(e) => setMaxPayment(Number(e.target.value))}
-                className="w-full accent-loss"
+                className="w-full accent-red-500"
               />
-              <div className="text-lg font-bold mono-number text-loss mt-1">
+              <div className="text-xl font-bold mono-number text-red-500 mt-2">
                 ${maxPayment.toFixed(2)}
               </div>
             </div>
             <div>
-              <label className="text-[10px] text-muted-foreground uppercase tracking-widest block mb-2">
-                MIN PAYMENT (-{minPct.toFixed(1)}%)
+              <label className="text-sm font-medium block mb-2">
+                Min payment (-{minPct.toFixed(1)}% saved)
               </label>
               <input
                 type="range"
@@ -278,9 +293,9 @@ const ConfigurationModal = ({
                 step={0.01}
                 value={minPayment}
                 onChange={(e) => setMinPayment(Number(e.target.value))}
-                className="w-full accent-profit"
+                className="w-full accent-emerald-500"
               />
-              <div className="text-lg font-bold mono-number text-profit mt-1">
+              <div className="text-xl font-bold mono-number text-emerald-600 mt-2">
                 ${minPayment.toFixed(2)}
               </div>
             </div>
@@ -288,9 +303,9 @@ const ConfigurationModal = ({
 
           {/* Time Limit */}
           <div>
-            <label className="text-[10px] text-muted-foreground uppercase tracking-widest block mb-2">
-              <Clock className="w-3 h-3 inline mr-1" />
-              TIME LIMIT: {timeLimit} DAYS
+            <label className="text-sm font-medium flex items-center gap-2 mb-2">
+              <Clock className="w-4 h-4" />
+              Time limit: {timeLimit} days
             </label>
             <input
               type="range"
@@ -299,82 +314,85 @@ const ConfigurationModal = ({
               step={1}
               value={timeLimit}
               onChange={(e) => setTimeLimit(Number(e.target.value))}
-              className="w-full"
+              className="w-full accent-primary"
             />
-            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-              <span>1 DAY</span>
-              <span>7 DAYS</span>
+            <div className="flex justify-between text-xs text-muted-foreground mt-1">
+              <span>1 day</span>
+              <span>7 days</span>
             </div>
           </div>
 
           {/* Risk Indicator */}
           <div className={cn(
-            'p-4 border flex items-center justify-between',
-            riskLevel === 'LOW' && 'border-profit/30 bg-profit/5',
-            riskLevel === 'MEDIUM' && 'border-warning/30 bg-warning/5',
-            riskLevel === 'HIGH' && 'border-loss/30 bg-loss/5'
+            'p-5 rounded-xl flex items-center justify-between',
+            riskLevel === 'LOW' && 'bg-emerald-50 border border-emerald-200',
+            riskLevel === 'MEDIUM' && 'bg-amber-50 border border-amber-200',
+            riskLevel === 'HIGH' && 'bg-red-50 border border-red-200'
           )}>
             <div className="flex items-center gap-3">
-              <Target className={cn(
-                'w-5 h-5',
-                riskLevel === 'LOW' && 'text-profit',
-                riskLevel === 'MEDIUM' && 'text-warning',
-                riskLevel === 'HIGH' && 'text-loss'
-              )} />
+              <div className={cn(
+                'w-10 h-10 rounded-lg flex items-center justify-center',
+                riskLevel === 'LOW' && 'bg-emerald-100',
+                riskLevel === 'MEDIUM' && 'bg-amber-100',
+                riskLevel === 'HIGH' && 'bg-red-100'
+              )}>
+                <Target className={cn(
+                  'w-5 h-5',
+                  riskLevel === 'LOW' && 'text-emerald-600',
+                  riskLevel === 'MEDIUM' && 'text-amber-600',
+                  riskLevel === 'HIGH' && 'text-red-500'
+                )} />
+              </div>
               <div>
                 <div className={cn(
-                  'font-bold',
-                  riskLevel === 'LOW' && 'text-profit',
-                  riskLevel === 'MEDIUM' && 'text-warning',
-                  riskLevel === 'HIGH' && 'text-loss'
+                  'font-semibold',
+                  riskLevel === 'LOW' && 'text-emerald-700',
+                  riskLevel === 'MEDIUM' && 'text-amber-700',
+                  riskLevel === 'HIGH' && 'text-red-600'
                 )}>
-                  {riskLevel} RISK
+                  {riskLevel} Risk
                 </div>
-                <div className="text-[10px] text-muted-foreground">
-                  Based on bound width and time limit
+                <div className="text-sm text-muted-foreground">
+                  Based on your limits and time
                 </div>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-sm font-bold mono-number">
+              <div className="text-2xl font-bold mono-number">
                 {successProbability.toFixed(0)}%
               </div>
-              <div className="text-[10px] text-muted-foreground">
-                SETTLE PROBABILITY
+              <div className="text-xs text-muted-foreground">
+                Settle chance
               </div>
             </div>
           </div>
 
           {/* Warning */}
           {riskLevel === 'HIGH' && (
-            <div className="flex items-start gap-2 text-loss">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <p className="text-[10px]">
-                TIGHT BOUNDS INCREASE BOUNCE RISK. CONSIDER WIDENING YOUR SETTLEMENT RANGE.
+            <div className="flex items-start gap-2 text-red-600 bg-red-50 p-4 rounded-xl">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <p className="text-sm">
+                Tight limits increase the chance of hitting your max payment. Consider widening your range.
               </p>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-grid-line flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-6 py-3 border border-grid-line text-xs font-semibold uppercase tracking-wider hover:bg-muted transition-colors"
-          >
-            CANCEL
-          </button>
-          <button
+        <div className="p-6 border-t border-border flex justify-end gap-3">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
             onClick={handleConfigure}
             className={cn(
-              'px-6 py-3 text-xs font-bold uppercase tracking-wider transition-colors',
               direction === 'LONG'
-                ? 'bg-profit text-primary-foreground hover:bg-profit/80'
-                : 'bg-loss text-destructive-foreground hover:bg-loss/80'
+                ? 'bg-blue-600 hover:bg-blue-700'
+                : 'bg-rose-500 hover:bg-rose-600'
             )}
           >
-            CONFIRM {direction} POSITION
-          </button>
+            Confirm {direction === 'LONG' ? 'Bullish' : 'Bearish'} Prediction
+          </Button>
         </div>
       </motion.div>
     </motion.div>
@@ -395,18 +413,18 @@ const Terminal = () => {
   const unconfiguredCount = positions.filter(p => p.status === 'UNCONFIGURED').length;
 
   return (
-    <main className="container py-6">
+    <main className="container py-8">
       {/* XRP Ticker */}
       <XrpTicker />
 
       {/* Header */}
-      <div className="mt-6 mb-4 flex items-center justify-between">
+      <div className="mt-8 mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold tracking-widest text-profit mb-1">
-            TRADING TERMINAL
+          <h1 className="text-2xl font-bold tracking-tight mb-1">
+            Positions
           </h1>
-          <p className="text-xs text-muted-foreground">
-            {activeCount} ACTIVE | {unconfiguredCount} UNCONFIGURED | REAL-TIME P&L
+          <p className="text-muted-foreground">
+            {activeCount} active • {unconfiguredCount} pending setup • Real-time tracking
           </p>
         </div>
 
@@ -417,30 +435,30 @@ const Terminal = () => {
               key={f}
               onClick={() => setFilter(f)}
               className={cn(
-                'px-3 py-1.5 text-[10px] uppercase tracking-wider font-semibold border transition-colors',
+                'px-4 py-2 text-sm font-medium rounded-lg border transition-all',
                 filter === f
-                  ? 'bg-profit border-profit text-primary-foreground'
-                  : 'border-grid-line text-muted-foreground hover:border-profit/50'
+                  ? 'bg-primary border-primary text-primary-foreground'
+                  : 'border-border text-muted-foreground hover:border-primary/50'
               )}
             >
-              {f}
+              {f === 'ALL' ? 'All' : f === 'UNCONFIGURED' ? 'Pending' : f === 'ACTIVE' ? 'Active' : 'Settled'}
             </button>
           ))}
         </div>
       </div>
 
       {/* Positions Grid */}
-      <div className="border border-grid-line bg-card">
+      <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
         {/* Header Row */}
-        <div className="grid grid-cols-9 gap-2 py-2 px-4 border-b border-grid-line bg-muted/30 text-[10px] text-muted-foreground uppercase tracking-widest">
-          <div className="col-span-2">ITEM</div>
-          <div className="text-right">PURCHASE</div>
+        <div className="grid grid-cols-9 gap-2 py-3 px-5 border-b border-border bg-muted/50 text-xs text-muted-foreground font-medium">
+          <div className="col-span-2">Item</div>
+          <div className="text-right">Purchase</div>
           <div className="text-right">XRP</div>
-          <div className="text-right">VALUE</div>
-          <div className="text-center">DIRECTION</div>
+          <div className="text-right">Value</div>
+          <div className="text-center">Direction</div>
           <div className="text-right">P&L</div>
-          <div className="text-right">TIME</div>
-          <div className="text-right">STATUS</div>
+          <div className="text-right">Time</div>
+          <div className="text-right">Status</div>
         </div>
 
         {/* Position Rows */}
@@ -453,28 +471,28 @@ const Terminal = () => {
             />
           ))
         ) : (
-          <div className="py-12 text-center text-muted-foreground text-sm">
-            NO POSITIONS MATCH CURRENT FILTER
+          <div className="py-16 text-center text-muted-foreground">
+            No positions match current filter
           </div>
         )}
       </div>
 
       {/* Legend */}
-      <div className="mt-4 flex items-center gap-6 text-[10px] text-muted-foreground">
+      <div className="mt-6 flex items-center gap-6 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-profit/20 border border-profit" />
-          <span>PROFITABLE</span>
+          <div className="w-3 h-3 rounded bg-emerald-100 border border-emerald-300" />
+          <span>Winning</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-loss/20 border border-loss" />
-          <span>LOSING</span>
+          <div className="w-3 h-3 rounded bg-red-100 border border-red-300" />
+          <span>Losing</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-warning/20 border border-warning" />
-          <span>NEEDS CONFIG</span>
+          <div className="w-3 h-3 rounded bg-amber-100 border border-amber-300" />
+          <span>Needs setup</span>
         </div>
         <div className="ml-auto">
-          CLICK ANY POSITION TO CONFIGURE
+          Click any position to configure
         </div>
       </div>
 

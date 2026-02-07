@@ -7,14 +7,14 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: "1rem",
+      padding: "1.5rem",
       screens: {
-        "2xl": "1600px",
+        "2xl": "1400px",
       },
     },
     extend: {
       fontFamily: {
-        mono: ["IBM Plex Mono", "Courier New", "monospace"],
+        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -50,11 +50,12 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
+        info: "hsl(var(--info))",
+        // Legacy aliases
         profit: "hsl(var(--profit))",
         loss: "hsl(var(--loss))",
-        warning: "hsl(var(--warning))",
-        neutral: "hsl(var(--neutral))",
-        "grid-line": "hsl(var(--grid-line))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -70,6 +71,14 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "1rem",
+        "2xl": "1.5rem",
+      },
+      boxShadow: {
+        'card': '0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06)',
+        'card-hover': '0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05)',
+        'soft': '0 2px 8px rgba(0, 0, 0, 0.08)',
+        'premium': '0 4px 20px rgba(0, 0, 0, 0.1)',
       },
       keyframes: {
         "accordion-down": {
@@ -88,9 +97,9 @@ export default {
           from: { transform: "translateY(10px)", opacity: "0" },
           to: { transform: "translateY(0)", opacity: "1" },
         },
-        "pulse-border": {
-          "0%, 100%": { borderColor: "hsl(var(--primary) / 0.3)" },
-          "50%": { borderColor: "hsl(var(--primary))" },
+        "scale-in": {
+          from: { transform: "scale(0.95)", opacity: "0" },
+          to: { transform: "scale(1)", opacity: "1" },
         },
       },
       animation: {
@@ -98,7 +107,7 @@ export default {
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.3s ease-out",
         "slide-up": "slide-up 0.3s ease-out",
-        "pulse-border": "pulse-border 2s ease-in-out infinite",
+        "scale-in": "scale-in 0.2s ease-out",
       },
     },
   },
