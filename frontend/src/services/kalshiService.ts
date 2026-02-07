@@ -17,19 +17,23 @@ import { computeHardMaxExpiryISO, clampExpiryISO } from "@/lib/risk";
 // API CONFIGURATION
 // ============================================
 
-const API_BASE = ((import.meta as any).env?.VITE_KALSHI_API_BASE) ?? '/kalshi'; // Use VITE_KALSHI_API_BASE in production, fallback to Vite proxy locally
+// Prefer an explicit backend URL in production. In dev, default to '/kalshi' so Vite proxy works.
+const VITE_API_BASE = ((import.meta as any).env?.VITE_KALSHI_API_BASE) as string | undefined;
+const API_BASE = VITE_API_BASE ?? '/kalshi'; // Dev: '/kalshi' (Vite proxy or local backend). Prod: set VITE_KALSHI_API_BASE to your backend absolute URL.
+const IS_PROD = ((import.meta as any).env?.MODE) === 'production';
 const PUBLIC_KALSHI_BASE = 'https://api.elections.kalshi.com/trade-api/v2';
 
 async function apiFetch(path: string, options?: RequestInit): Promise<Response> {
     const tried: string[] = [];
     const bases = [API_BASE];
 
-    // If API_BASE is a relative proxy path (starts with '/'), try the public base after it fails
-    if (!API_BASE.startsWith('http')) {
-        bases.push(PUBLIC_KALSHI_BASE);
-    } else if (API_BASE !== PUBLIC_KALSHI_BASE) {
-        // If a custom absolute base was set but differs from the public one, try public as fallback
-        bases.push(PUBLIC_KALSHI_BASE);
+    // If API_BASE is a relative proxy path (starts with '/'), only in non-production try the public Kalshi API as a fallback.
+    // In production, a relative API_BASE means your server MUST handle /kalshi/*; do not attempt Kalshi public domain from the browser (CORS will block it).
+    if (API_BASE.startsWith('/')) {
+        if (!IS_PROD) {
+            // Local dev fallback: if the Vite proxy isn't available, try the public API so dev still works (but this will CORS in prod).
+            bases.push(PUBLIC_KALSHI_BASE);
+        }
     }
 
     for (const base of bases) {
@@ -47,6 +51,11 @@ async function apiFetch(path: string, options?: RequestInit): Promise<Response> 
             // try next base
             continue;
         }
+    }
+
+    // If running in production and API_BASE is still a relative path, give a clear error recommending setting the env var to an absolute backend URL.
+    if (API_BASE.startsWith('/') && IS_PROD) {
+        throw new Error(`All API fetch attempts failed in production. Your frontend is configured to use a relative API base ("${API_BASE}") which requires a server route like "/kalshi/*". In production you should set VITE_KALSHI_API_BASE to your backend proxy (e.g. https://<your-backend>/kalshi). Tried: ${tried.join(', ')}`);
     }
 
     const err = new Error(`All API fetch attempts failed. Tried: ${tried.join(', ')}`);

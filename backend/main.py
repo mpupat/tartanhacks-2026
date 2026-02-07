@@ -17,8 +17,9 @@ import time
 import traceback
 from datetime import datetime
 from typing import Optional, Dict, Any
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+import httpx
 from pydantic import BaseModel
 from typing import Optional # Added for the filter
 
@@ -193,6 +194,51 @@ async def root():
         "escrow_wallet": ESCROW_WALLET.address if ESCROW_WALLET else None,
         "explorer_base": "https://testnet.xrpl.org"
     }
+
+
+# Server-side proxy for Kalshi API to avoid browser CORS issues.
+KALSHI_BASE = "https://api.elections.kalshi.com/trade-api/v2"
+
+@app.api_route("/kalshi/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]) 
+async def kalshi_proxy(full_path: str, request: Request):
+    """Proxy requests to Kalshi API from server side.
+    Forwards method, body and most headers; returns Kalshi response verbatim.
+    """
+    try:
+        # Build target URL including query string
+        url = f"{KALSHI_BASE}/{full_path}"
+        qs = request.scope.get("query_string")
+        if qs:
+            qs_str = qs.decode('utf-8')
+            if qs_str:
+                url = f"{url}?{qs_str}"
+
+        # Forward most headers, but avoid host/content-length/encoding headers that can cause issues
+        forward_headers = {}
+        for name, value in request.headers.items():
+            ln = name.lower()
+            if ln in ("host", "content-length", "accept-encoding"):
+                continue
+            forward_headers[name] = value
+
+        # If you need to add an API key for Kalshi server-side, read from env and set here
+        # e.g. forward_headers['Authorization'] = f"Bearer {os.environ.get('KALSHI_API_KEY')}"
+
+        body = await request.body()
+
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.request(request.method, url, headers=forward_headers or None, content=body)
+
+        # Build response: copy content-type header if available
+        response_headers = {}
+        if 'content-type' in resp.headers:
+            response_headers['content-type'] = resp.headers['content-type']
+
+        return Response(content=resp.content, status_code=resp.status_code, headers=response_headers)
+
+    except httpx.HTTPError as e:
+        print("Kalshi proxy error:", e)
+        raise HTTPException(status_code=502, detail=str(e))
 
 @app.post("/purchase/log")
 async def log_purchase(req: PurchaseRequest):
