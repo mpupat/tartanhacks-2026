@@ -17,7 +17,41 @@ import { computeHardMaxExpiryISO, clampExpiryISO } from "@/lib/risk";
 // API CONFIGURATION
 // ============================================
 
-const API_BASE = '/kalshi'; // Proxied through Vite to https://api.elections.kalshi.com/trade-api/v2
+const API_BASE = ((import.meta as any).env?.VITE_KALSHI_API_BASE) ?? '/kalshi'; // Use VITE_KALSHI_API_BASE in production, fallback to Vite proxy locally
+const PUBLIC_KALSHI_BASE = 'https://api.elections.kalshi.com/trade-api/v2';
+
+async function apiFetch(path: string, options?: RequestInit): Promise<Response> {
+    const tried: string[] = [];
+    const bases = [API_BASE];
+
+    // If API_BASE is a relative proxy path (starts with '/'), try the public base after it fails
+    if (!API_BASE.startsWith('http')) {
+        bases.push(PUBLIC_KALSHI_BASE);
+    } else if (API_BASE !== PUBLIC_KALSHI_BASE) {
+        // If a custom absolute base was set but differs from the public one, try public as fallback
+        bases.push(PUBLIC_KALSHI_BASE);
+    }
+
+    for (const base of bases) {
+        const url = base.endsWith('/') ? `${base.slice(0, -1)}${path}` : `${base}${path}`;
+        tried.push(url);
+        try {
+            const res = await fetch(url, options);
+            if (res.status === 404) {
+                console.warn(`Request returned 404 for ${url}; trying next base if available`);
+                continue; // try next base
+            }
+            return res;
+        } catch (err) {
+            console.warn(`Request to ${url} failed:`, err);
+            // try next base
+            continue;
+        }
+    }
+
+    const err = new Error(`All API fetch attempts failed. Tried: ${tried.join(', ')}`);
+    throw err;
+}
 
 // ============================================
 // CATEGORY MAPPING
@@ -60,7 +94,7 @@ interface EventWithMarkets {
 export async function fetchMarkets(filters: MarketFilters = {}): Promise<KalshiMarket[]> {
     try {
         // Step 1: Fetch events (which have proper categories and titles)
-        const eventsResponse = await fetch(`${API_BASE}/events?limit=100&with_nested_markets=true&status=open`);
+        const eventsResponse = await apiFetch(`/events?limit=100&with_nested_markets=true&status=open`);
         if (!eventsResponse.ok) {
             // Fallback: try without with_nested_markets
             return await fetchMarketsSimple(filters);
@@ -122,7 +156,7 @@ export function buildPositionWithBoundedExpiry(input: {
 async function fetchMarketsViaEvents(filters: MarketFilters = {}): Promise<KalshiMarket[]> {
     try {
         // Fetch events
-        const eventsResponse = await fetch(`${API_BASE}/events?limit=50`);
+        const eventsResponse = await apiFetch(`/events?limit=50`);
         if (!eventsResponse.ok) throw new Error(`Events API error: ${eventsResponse.status}`);
 
         const eventsData: KalshiEventsResponse = await eventsResponse.json();
@@ -139,7 +173,7 @@ async function fetchMarketsViaEvents(filters: MarketFilters = {}): Promise<Kalsh
         // Fetch markets for each event in parallel
         const marketPromises = eventsToFetch.map(async (event) => {
             try {
-                const response = await fetch(`${API_BASE}/events/${event.event_ticker}`);
+                const response = await apiFetch(`/events/${event.event_ticker}`);
                 if (!response.ok) return [];
 
                 const data = await response.json();
@@ -170,7 +204,7 @@ async function fetchMarketsViaEvents(filters: MarketFilters = {}): Promise<Kalsh
 // Simpler fallback: Just fetch markets directly and filter
 async function fetchMarketsSimple(filters: MarketFilters = {}): Promise<KalshiMarket[]> {
     try {
-        const response = await fetch(`${API_BASE}/markets?limit=100`);
+        const response = await apiFetch(`/markets?limit=100`);
         if (!response.ok) throw new Error(`Markets API error: ${response.status}`);
 
         const data = await response.json();
@@ -254,7 +288,7 @@ function applyFilters(markets: KalshiMarket[], filters: MarketFilters): KalshiMa
 
 export async function getMarket(ticker: string): Promise<KalshiMarket | null> {
     try {
-        const response = await fetch(`${API_BASE}/markets/${ticker}`);
+        const response = await apiFetch(`/markets/${ticker}`);
         if (!response.ok) {
             if (response.status === 404) return null;
             throw new Error(`Market API error: ${response.status}`);
