@@ -1,43 +1,39 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useAppStore, Position } from '@/store/appStore';
-import { StatusPill } from '@/components/ui/StatusPill';
+import { useAppStore } from '@/store/appStore';
 import { cn } from '@/lib/utils';
-import { Download, TrendingUp, TrendingDown, BarChart3, ArrowUp, ArrowDown } from 'lucide-react';
+import { Download, TrendingUp, TrendingDown, CheckCircle, X, Clock, Target, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { Position } from '@/types/kalshi';
+import { CATEGORY_CONFIG } from '@/services/kalshiService';
 
 const History = () => {
   const { positions } = useAppStore();
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'roi'>('date');
 
-  // Filter to only settled/bounced positions
-  const settledPositions = positions.filter(
-    (p) => p.status === 'SETTLED' || p.status === 'BOUNCED'
-  );
+  // Filter to only settled positions
+  const settledPositions = positions.filter(p => p.status === 'settled');
 
   // Calculate stats
   const stats = settledPositions.reduce(
     (acc, pos) => {
-      const savings = pos.purchaseAmount - (pos.settledAmount || pos.purchaseAmount);
-      const roi = (savings / pos.purchaseAmount) * 100;
+      const cashback = pos.cashback_amount || 0;
+      acc.totalPurchase += pos.purchase.purchase_amount;
+      acc.totalCashback += cashback;
 
-      acc.totalPurchase += pos.purchaseAmount;
-      acc.totalSettled += pos.settledAmount || pos.purchaseAmount;
-      acc.totalSavings += savings;
-      if (savings > 0) acc.wins++;
-      if (savings < 0) acc.losses++;
-      if (savings > acc.bestSaving) acc.bestSaving = savings;
-      if (savings < acc.worstLoss) acc.worstLoss = savings;
+      if (pos.final_outcome === 'win') acc.wins++;
+      if (pos.final_outcome === 'loss') acc.losses++;
+      if (cashback > acc.bestWin) acc.bestWin = cashback;
+      if (cashback < acc.worstLoss) acc.worstLoss = cashback;
 
       return acc;
     },
     {
       totalPurchase: 0,
-      totalSettled: 0,
-      totalSavings: 0,
+      totalCashback: 0,
       wins: 0,
       losses: 0,
-      bestSaving: 0,
+      bestWin: 0,
       worstLoss: 0,
     }
   );
@@ -45,25 +41,32 @@ const History = () => {
   const winRate = settledPositions.length > 0
     ? (stats.wins / settledPositions.length) * 100
     : 0;
-  const avgRoi = settledPositions.length > 0
-    ? (stats.totalSavings / stats.totalPurchase) * 100
-    : 0;
+
+  // Sort positions
+  const sortedPositions = [...settledPositions].sort((a, b) => {
+    switch (sortBy) {
+      case 'amount':
+        return b.purchase.purchase_amount - a.purchase.purchase_amount;
+      case 'roi':
+        return (b.roi || 0) - (a.roi || 0);
+      case 'date':
+      default:
+        return new Date(b.settled_at || '').getTime() - new Date(a.settled_at || '').getTime();
+    }
+  });
 
   const handleExport = () => {
     const csv = [
-      ['Date', 'Item', 'Purchase', 'Direction', 'Settlement', 'Final Payment', 'Savings/Loss', 'ROI %'].join(','),
-      ...settledPositions.map((p) => {
-        const savings = p.purchaseAmount - (p.settledAmount || p.purchaseAmount);
-        const roi = (savings / p.purchaseAmount) * 100;
+      ['Date', 'Item', 'Market', 'Prediction', 'Outcome', 'Cashback', 'ROI %'].join(','),
+      ...sortedPositions.map((p) => {
         return [
-          new Date(p.settledAt || p.startTime).toISOString().split('T')[0],
-          p.productName,
-          p.purchaseAmount.toFixed(2),
-          p.direction,
-          p.status,
-          (p.settledAmount || p.purchaseAmount).toFixed(2),
-          savings.toFixed(2),
-          roi.toFixed(2),
+          new Date(p.settled_at || '').toISOString().split('T')[0],
+          p.purchase.item_name,
+          p.market_title || '',
+          p.prediction_direction || '',
+          p.final_outcome || '',
+          (p.cashback_amount || 0).toFixed(2),
+          (p.roi || 0).toFixed(2),
         ].join(',');
       }),
     ].join('\n');
@@ -74,6 +77,16 @@ const History = () => {
     a.href = url;
     a.download = `winback-history-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
+  };
+
+  const formatSettlementReason = (reason: Position['settlement_reason']) => {
+    switch (reason) {
+      case 'market_resolved': return 'Market Resolved';
+      case 'threshold_reward': return 'Hit Reward Target';
+      case 'threshold_loss': return 'Hit Loss Limit';
+      case 'time_expired': return 'Time Expired';
+      default: return reason;
+    }
   };
 
   return (
@@ -95,156 +108,171 @@ const History = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-6 gap-4 mb-8">
-        <div className="bg-white rounded-xl border border-border p-5 shadow-card">
-          <div className="text-sm text-muted-foreground mb-1">
-            Total Winback
+      <div className="grid md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        <div className="bg-white rounded-xl border border-border p-4 shadow-card">
+          <div className="text-sm text-muted-foreground mb-1">Total Trades</div>
+          <div className="text-2xl font-bold">{settledPositions.length}</div>
+        </div>
+        <div className="bg-white rounded-xl border border-border p-4 shadow-card">
+          <div className="text-sm text-muted-foreground mb-1">Win Rate</div>
+          <div className={cn(
+            'text-2xl font-bold',
+            winRate >= 50 ? 'text-emerald-600' : 'text-red-500'
+          )}>
+            {winRate.toFixed(0)}%
           </div>
-          <div
+        </div>
+        <div className="bg-white rounded-xl border border-border p-4 shadow-card">
+          <div className="text-sm text-muted-foreground mb-1">Total Cashback</div>
+          <div className={cn(
+            'text-2xl font-bold',
+            stats.totalCashback >= 0 ? 'text-emerald-600' : 'text-red-500'
+          )}>
+            {stats.totalCashback >= 0 ? '+' : ''}${stats.totalCashback.toFixed(2)}
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-border p-4 shadow-card">
+          <div className="text-sm text-muted-foreground mb-1">Wins / Losses</div>
+          <div className="text-2xl font-bold">
+            <span className="text-emerald-600">{stats.wins}</span>
+            <span className="text-muted-foreground mx-1">/</span>
+            <span className="text-red-500">{stats.losses}</span>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-border p-4 shadow-card">
+          <div className="text-sm text-muted-foreground mb-1">Best Win</div>
+          <div className="text-2xl font-bold text-emerald-600">
+            +${stats.bestWin.toFixed(2)}
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-border p-4 shadow-card">
+          <div className="text-sm text-muted-foreground mb-1">Worst Loss</div>
+          <div className="text-2xl font-bold text-red-500">
+            {stats.worstLoss < 0 ? '' : '-'}${Math.abs(stats.worstLoss).toFixed(2)}
+          </div>
+        </div>
+      </div>
+
+      {/* Sort Controls */}
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-sm text-muted-foreground">Sort by:</span>
+        {(['date', 'amount', 'roi'] as const).map((option) => (
+          <button
+            key={option}
+            onClick={() => setSortBy(option)}
             className={cn(
-              'text-2xl font-bold mono-number',
-              stats.totalSavings >= 0 ? 'text-emerald-600' : 'text-red-500'
+              'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+              sortBy === option
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             )}
           >
-            {stats.totalSavings >= 0 ? '+' : ''}${stats.totalSavings.toFixed(2)}
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border border-border p-5 shadow-card">
-          <div className="text-sm text-muted-foreground mb-1">
-            Win Rate
-          </div>
-          <div
-            className={cn(
-              'text-2xl font-bold mono-number',
-              winRate >= 50 ? 'text-emerald-600' : 'text-red-500'
-            )}
-          >
-            {winRate.toFixed(1)}%
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border border-border p-5 shadow-card">
-          <div className="text-sm text-muted-foreground mb-1">
-            Avg ROI
-          </div>
-          <div
-            className={cn(
-              'text-2xl font-bold mono-number',
-              avgRoi >= 0 ? 'text-emerald-600' : 'text-red-500'
-            )}
-          >
-            {avgRoi >= 0 ? '+' : ''}{avgRoi.toFixed(2)}%
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border border-border p-5 shadow-card">
-          <div className="text-sm text-muted-foreground mb-1">
-            Best Win
-          </div>
-          <div className="text-2xl font-bold mono-number text-emerald-600">
-            +${stats.bestSaving.toFixed(2)}
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border border-border p-5 shadow-card">
-          <div className="text-sm text-muted-foreground mb-1">
-            Worst Loss
-          </div>
-          <div className="text-2xl font-bold mono-number text-red-500">
-            ${stats.worstLoss.toFixed(2)}
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border border-border p-5 shadow-card">
-          <div className="text-sm text-muted-foreground mb-1">
-            Total Predictions
-          </div>
-          <div className="text-2xl font-bold mono-number">
-            {settledPositions.length}
-          </div>
-        </div>
+            {option === 'date' ? 'Date' : option === 'amount' ? 'Amount' : 'ROI'}
+          </button>
+        ))}
       </div>
 
       {/* History Table */}
-      <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
-        {/* Header */}
-        <div className="grid grid-cols-8 gap-2 py-3 px-5 border-b border-border bg-muted/50 text-xs text-muted-foreground font-medium">
-          <div>Date</div>
-          <div className="col-span-2">Item</div>
-          <div className="text-right">Purchase</div>
-          <div className="text-center">Direction</div>
-          <div className="text-right">Final Payment</div>
-          <div className="text-right">Savings/Loss</div>
-          <div className="text-right">ROI</div>
+      {settledPositions.length === 0 ? (
+        <div className="bg-white rounded-xl border border-border p-12 text-center shadow-card">
+          <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No completed trades yet</h3>
+          <p className="text-muted-foreground">
+            Your settled positions will appear here
+          </p>
         </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Item</th>
+                <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Market</th>
+                <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Prediction</th>
+                <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Outcome</th>
+                <th className="text-right p-4 text-sm font-semibold text-muted-foreground">Cashback</th>
+                <th className="text-right p-4 text-sm font-semibold text-muted-foreground">ROI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedPositions.map((position, index) => {
+                const isWin = position.final_outcome === 'win';
+                const categoryConfig = position.market_category ? CATEGORY_CONFIG[position.market_category] : null;
 
-        {/* Rows */}
-        {settledPositions.length > 0 ? (
-          settledPositions.map((position, index) => {
-            const savings = position.purchaseAmount - (position.settledAmount || position.purchaseAmount);
-            const roi = (savings / position.purchaseAmount) * 100;
-            const date = new Date(position.settledAt || position.startTime);
-
-            return (
-              <motion.div
-                key={position.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: index * 0.05 }}
-                className={cn(
-                  'grid grid-cols-8 gap-2 py-4 px-5 border-b border-border hover:bg-muted/30 transition-colors',
-                  index % 2 === 0 ? 'bg-white' : 'bg-muted/20'
-                )}
-              >
-                <div className="text-sm mono-number text-muted-foreground">
-                  {date.toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: '2-digit',
-                    year: 'numeric',
-                  })}
-                </div>
-                <div className="col-span-2">
-                  <div className="text-sm font-medium">{position.productName}</div>
-                </div>
-                <div className="text-right text-sm mono-number">
-                  ${position.purchaseAmount.toFixed(2)}
-                </div>
-                <div className="text-center">
-                  <StatusPill status={position.direction} />
-                </div>
-                <div className="text-right">
-                  <div className="text-sm mono-number">
-                    ${(position.settledAmount || position.purchaseAmount).toFixed(2)}
-                  </div>
-                  <StatusPill status={position.status} size="sm" />
-                </div>
-                <div className="text-right flex items-center justify-end gap-1">
-                  {savings > 0 && <ArrowUp className="w-3 h-3 text-emerald-600" />}
-                  {savings < 0 && <ArrowDown className="w-3 h-3 text-red-500" />}
-                  <span className={cn(
-                    'text-sm font-semibold mono-number',
-                    savings > 0 ? 'text-emerald-600' : savings < 0 ? 'text-red-500' : 'text-muted-foreground'
-                  )}>
-                    {savings > 0 ? '+' : ''}{savings.toFixed(2)}
-                  </span>
-                </div>
-                <div className={cn(
-                  'text-right text-sm font-semibold mono-number',
-                  roi > 0 ? 'text-emerald-600' : roi < 0 ? 'text-red-500' : 'text-muted-foreground'
-                )}>
-                  {roi > 0 ? '+' : ''}{roi.toFixed(2)}%
-                </div>
-              </motion.div>
-            );
-          })
-        ) : (
-          <div className="py-16 text-center">
-            <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">
-              No completed predictions yet
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Your settled predictions will appear here
-            </p>
-          </div>
-        )}
-      </div>
+                return (
+                  <motion.tr
+                    key={position.id}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                    className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
+                  >
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">{position.purchase.item_icon}</span>
+                        <div>
+                          <p className="font-medium">{position.purchase.item_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            ${position.purchase.purchase_amount.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        {categoryConfig && (
+                          <span className="text-sm">{categoryConfig.icon}</span>
+                        )}
+                        <span className="text-sm max-w-[200px] truncate">
+                          {position.market_title || 'N/A'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <span className={cn(
+                        'inline-flex items-center px-2 py-1 rounded text-xs font-semibold',
+                        position.prediction_direction === 'YES'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-red-100 text-red-700'
+                      )}>
+                        {position.prediction_direction} @ {position.entry_price}¢
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          'inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold',
+                          isWin ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                        )}>
+                          {isWin ? <CheckCircle className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                          {isWin ? 'WON' : 'LOST'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatSettlementReason(position.settlement_reason)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className={cn(
+                      'p-4 text-right font-semibold',
+                      isWin ? 'text-emerald-600' : 'text-red-500'
+                    )}>
+                      {(position.cashback_amount || 0) >= 0 ? '+' : ''}
+                      ${(position.cashback_amount || 0).toFixed(2)}
+                    </td>
+                    <td className={cn(
+                      'p-4 text-right font-semibold',
+                      isWin ? 'text-emerald-600' : 'text-red-500'
+                    )}>
+                      {(position.roi || 0) >= 0 ? '+' : ''}
+                      {(position.roi || 0).toFixed(1)}%
+                    </td>
+                  </motion.tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </main>
   );
 };

@@ -1,9 +1,13 @@
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/appStore';
-import { usePositionCalculations } from '@/hooks/usePositionCalculations';
-import { StatusPill } from '@/components/ui/StatusPill';
 import { cn } from '@/lib/utils';
-import { TrendingUp, TrendingDown, AlertCircle, DollarSign, CreditCard, Activity, Target, ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
+import {
+  TrendingUp, TrendingDown, AlertCircle, DollarSign,
+  Activity, Target, ArrowUpRight, ArrowDownRight, Wallet, Compass
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { calculatePositionPnL, CATEGORY_CONFIG } from '@/services/kalshiService';
 
 const StatCard = ({
   label,
@@ -44,7 +48,7 @@ const StatCard = ({
       </div>
       <div
         className={cn(
-          'text-2xl font-bold mono-number',
+          'text-2xl font-bold',
           variant === 'profit' && 'text-emerald-600',
           variant === 'loss' && 'text-red-500',
           variant === 'warning' && 'text-amber-600',
@@ -60,212 +64,243 @@ const StatCard = ({
   );
 };
 
-const QuickPositionRow = ({ position }: { position: any }) => {
-  const calc = usePositionCalculations(position);
-
-  return (
-    <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
-      <div className="flex items-center gap-3">
-        <StatusPill status={position.status} />
-        <span className="text-sm font-medium">{position.productName}</span>
-      </div>
-      <div className="flex items-center gap-4">
-        <span className="text-sm text-muted-foreground mono-number">
-          ${position.purchaseAmount.toFixed(2)}
-        </span>
-        <div className="flex items-center gap-1">
-          {calc.isProfit ? (
-            <ArrowUpRight className="w-4 h-4 text-emerald-600" />
-          ) : calc.isLoss ? (
-            <ArrowDownRight className="w-4 h-4 text-red-500" />
-          ) : null}
-          <span
-            className={cn(
-              'text-sm font-semibold mono-number',
-              calc.isProfit ? 'text-emerald-600' : calc.isLoss ? 'text-red-500' : 'text-muted-foreground'
-            )}
-          >
-            {calc.isProfit ? '+' : ''}{calc.pnlPercent.toFixed(2)}%
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const Bank = () => {
+  const navigate = useNavigate();
   const { balance, creditOutstanding, positions } = useAppStore();
 
-  const activePositions = positions.filter(p => p.status === 'ACTIVE');
-  const unconfiguredPositions = positions.filter(p => p.status === 'UNCONFIGURED');
+  const activePositions = positions.filter(p => p.status === 'active');
+  const unconfiguredPositions = positions.filter(p => p.status === 'unconfigured');
+  const settledPositions = positions.filter(p => p.status === 'settled');
 
-  // Calculate totals
-  const totalPnL = activePositions.reduce((sum, p) => {
-    const calc = usePositionCalculations(p);
-    return sum + calc.pnlAmount;
+  // Calculate total P&L for active positions
+  const totalPnL = activePositions.reduce((sum, pos) => {
+    const { pnl } = calculatePositionPnL(pos);
+    return sum + pnl;
   }, 0);
 
-  const expectedPayback = creditOutstanding - totalPnL;
-  const nearBoundCount = 2; // Mock
-  const riskLevel = nearBoundCount > 1 ? 'MEDIUM' : totalPnL < 0 ? 'HIGH' : 'LOW';
+  // Calculate total settled cashback
+  const totalCashback = settledPositions.reduce((sum, pos) => {
+    return sum + (pos.cashback_amount || 0);
+  }, 0);
+
+  // Win rate
+  const wins = settledPositions.filter(p => p.final_outcome === 'win').length;
+  const winRate = settledPositions.length > 0
+    ? Math.round((wins / settledPositions.length) * 100)
+    : 0;
 
   return (
     <main className="container py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight mb-1">
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-3xl font-bold tracking-tight mb-2"
+        >
           Dashboard
-        </h1>
+        </motion.h1>
         <p className="text-muted-foreground">
-          Your portfolio overview • Updated live
+          Track your positions and cashback earnings
         </p>
       </div>
 
-      {/* Hero Balance Card */}
-      <div className="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 rounded-2xl p-8 mb-8 text-white shadow-premium">
-        <div className="grid md:grid-cols-2 gap-8 items-center">
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
-                <Wallet className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <div className="text-blue-200 text-sm font-medium">Available Balance</div>
-                <div className="text-3xl font-bold mono-number">
-                  ${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                </div>
-              </div>
-            </div>
-            <p className="text-blue-200 text-sm">
-              Ready for withdrawal or new predictions
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white/10 rounded-xl p-4">
-              <div className="text-blue-200 text-sm mb-1">Credit Outstanding</div>
-              <div className="text-xl font-bold mono-number">
-                ${creditOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </div>
-            </div>
-            <div className="bg-white/10 rounded-xl p-4">
-              <div className="text-blue-200 text-sm mb-1">Expected Payback</div>
-              <div className={cn(
-                'text-xl font-bold mono-number',
-                totalPnL >= 0 ? 'text-emerald-400' : 'text-red-400'
-              )}>
-                ${expectedPayback.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Stats Grid */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        <div className="bg-white rounded-xl border border-border p-4 shadow-card flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            Active Predictions
-          </span>
-          <span className="text-2xl font-bold text-primary mono-number">
-            {activePositions.length}
-          </span>
-        </div>
-        <div className="bg-white rounded-xl border border-border p-4 shadow-card flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            Pending Setup
-          </span>
-          <span className="text-2xl font-bold text-amber-600 mono-number">
-            {unconfiguredPositions.length}
-          </span>
-        </div>
-        <div className="bg-white rounded-xl border border-border p-4 shadow-card flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            Near Limit
-          </span>
-          <span className="text-2xl font-bold text-red-500 mono-number">
-            {nearBoundCount}
-          </span>
-        </div>
-        <div className="bg-white rounded-xl border border-border p-4 shadow-card flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            Potential {totalPnL >= 0 ? 'Winback' : 'Cost'}
-          </span>
-          <span
-            className={cn(
-              'text-2xl font-bold mono-number',
-              totalPnL >= 0 ? 'text-emerald-600' : 'text-red-500'
-            )}
-          >
-            {totalPnL >= 0 ? '+' : ''}${Math.abs(totalPnL).toFixed(2)}
-          </span>
-        </div>
-      </div>
-
-      {/* Position Lists */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* Active Positions */}
+      {/* Unconfigured Alert */}
+      {unconfiguredPositions.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
+          className="bg-amber-50 border-2 border-amber-200 rounded-xl p-5 mb-6"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                <AlertCircle className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-amber-800">
+                  {unconfiguredPositions.length} purchase{unconfiguredPositions.length > 1 ? 's' : ''} need configuration
+                </h3>
+                <p className="text-sm text-amber-700">
+                  Configure your predictions to start earning cashback
+                </p>
+              </div>
+            </div>
+            <Button onClick={() => navigate('/terminal')} variant="outline" className="border-amber-300 text-amber-800 hover:bg-amber-100">
+              Configure Now
+            </Button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Stats Grid */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <StatCard
+            label="Account Balance"
+            value={`$${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+            icon={Wallet}
+          />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <StatCard
+            label="Active P&L"
+            value={`${totalPnL >= 0 ? '+' : ''}$${totalPnL.toFixed(2)}`}
+            subValue={`${activePositions.length} active positions`}
+            icon={totalPnL >= 0 ? TrendingUp : TrendingDown}
+            variant={totalPnL >= 0 ? 'profit' : 'loss'}
+          />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <StatCard
+            label="Total Cashback"
+            value={`${totalCashback >= 0 ? '+' : ''}$${totalCashback.toFixed(2)}`}
+            subValue={`${settledPositions.length} settled positions`}
+            icon={DollarSign}
+            variant={totalCashback >= 0 ? 'profit' : 'loss'}
+          />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <StatCard
+            label="Win Rate"
+            value={`${winRate}%`}
+            subValue={`${wins}/${settledPositions.length} predictions won`}
+            icon={Target}
+            variant={winRate >= 50 ? 'profit' : 'default'}
+          />
+        </motion.div>
+      </div>
+
+      {/* Two Column Layout */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Active Positions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
           className="bg-white rounded-xl border border-border shadow-card"
         >
           <div className="p-5 border-b border-border flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-emerald-600" />
-              <span className="font-semibold">Active Predictions</span>
-            </div>
-            <StatusPill status="ACTIVE" />
+            <h2 className="font-semibold">Active Positions</h2>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/terminal')}>
+              View All
+            </Button>
           </div>
           <div className="p-5">
-            {activePositions.length > 0 ? (
-              activePositions.slice(0, 5).map((position) => (
-                <QuickPositionRow key={position.id} position={position} />
-              ))
+            {activePositions.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p>No active positions</p>
+              </div>
             ) : (
-              <div className="text-sm text-muted-foreground text-center py-8">
-                No active predictions
+              <div className="space-y-4">
+                {activePositions.slice(0, 4).map((position) => {
+                  const { pnl, pnlPercent, isWinning } = calculatePositionPnL(position);
+                  const categoryConfig = position.market_category ? CATEGORY_CONFIG[position.market_category] : null;
+
+                  return (
+                    <div key={position.id} className="flex items-center justify-between py-3 border-b border-border last:border-0">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">{position.purchase.item_icon}</span>
+                        <div>
+                          <p className="font-medium text-sm">{position.purchase.item_name}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            {categoryConfig && (
+                              <span>{categoryConfig.icon}</span>
+                            )}
+                            <span>{position.prediction_direction} @ {position.entry_price}¢</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className={cn(
+                          'flex items-center gap-1 text-sm font-semibold',
+                          isWinning ? 'text-emerald-600' : 'text-red-500'
+                        )}>
+                          {isWinning ? (
+                            <ArrowUpRight className="w-4 h-4" />
+                          ) : (
+                            <ArrowDownRight className="w-4 h-4" />
+                          )}
+                          {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
         </motion.div>
 
-        {/* Unconfigured Positions */}
+        {/* Quick Actions */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white rounded-xl border-2 border-amber-200 shadow-card"
+          transition={{ delay: 0.6 }}
+          className="bg-white rounded-xl border border-border shadow-card"
         >
-          <div className="p-5 border-b border-border flex items-center justify-between bg-amber-50 rounded-t-xl">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-amber-600" />
-              <span className="font-semibold text-amber-800">Needs Setup</span>
-            </div>
-            <StatusPill status="UNCONFIGURED" />
+          <div className="p-5 border-b border-border">
+            <h2 className="font-semibold">Quick Actions</h2>
           </div>
-          <div className="p-5">
-            {unconfiguredPositions.length > 0 ? (
-              unconfiguredPositions.map((position) => (
-                <QuickPositionRow key={position.id} position={position} />
-              ))
-            ) : (
-              <div className="text-sm text-muted-foreground text-center py-8">
-                All predictions configured ✓
+          <div className="p-5 space-y-3">
+            <button
+              onClick={() => navigate('/shop')}
+              className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:bg-muted transition-colors text-left"
+            >
+              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-primary" />
               </div>
-            )}
+              <div className="flex-1">
+                <h3 className="font-medium">Shop</h3>
+                <p className="text-sm text-muted-foreground">Browse products and make a purchase</p>
+              </div>
+            </button>
+            <button
+              onClick={() => navigate('/explorer')}
+              className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:bg-muted transition-colors text-left"
+            >
+              <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                <Compass className="w-5 h-5 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium">Explore Markets</h3>
+                <p className="text-sm text-muted-foreground">Discover Kalshi prediction markets</p>
+              </div>
+            </button>
+            <button
+              onClick={() => navigate('/terminal')}
+              className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:bg-muted transition-colors text-left"
+            >
+              <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium">Manage Positions</h3>
+                <p className="text-sm text-muted-foreground">Configure predictions and track P&L</p>
+              </div>
+            </button>
           </div>
         </motion.div>
-      </div>
-
-      {/* Risk Disclaimer */}
-      <div className="mt-8 bg-amber-50 border border-amber-200 rounded-xl p-4">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-amber-700 leading-relaxed">
-            Predictions involve risk. Positions may settle above purchase price if your prediction is incorrect.
-            Reaching your limit triggers automatic settlement. Review all predictions before market close.
-          </p>
-        </div>
       </div>
     </main>
   );

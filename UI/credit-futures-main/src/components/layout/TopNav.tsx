@@ -1,60 +1,66 @@
 import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
+import { ShoppingCart, Wallet, Store, Compass, TrendingUp, History } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
-import { ShoppingCart } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-const NAV_ITEMS = [
-  { label: 'Dashboard', path: '/bank' },
-  { label: 'Store', path: '/shop' },
-  { label: 'Positions', path: '/terminal' },
-  { label: 'History', path: '/history' },
+const navLinks = [
+  { path: '/bank', label: 'Dashboard', icon: Wallet },
+  { path: '/shop', label: 'Shop', icon: Store },
+  { path: '/explorer', label: 'Explorer', icon: Compass },
+  { path: '/terminal', label: 'Positions', icon: TrendingUp },
+  { path: '/history', label: 'History', icon: History },
 ];
 
 export const TopNav = () => {
   const location = useLocation();
-  const { cart } = useAppStore();
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const cart = useAppStore((state) => state.cart);
+  const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <header className="border-b border-border bg-white sticky top-0 z-50 shadow-sm">
-      <div className="container flex items-center justify-between h-16">
+    <header className="sticky top-0 z-50 w-full bg-white border-b border-border shadow-sm">
+      <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-sm">W</span>
           </div>
-          <span className="text-lg font-bold text-foreground">
+          <span className="text-xl font-bold tracking-tight text-foreground">
             Winback
           </span>
         </Link>
 
-        {/* Navigation */}
-        <nav className="flex items-center gap-1">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={cn(
-                'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
-                location.pathname === item.path
-                  ? 'text-primary bg-primary/5'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
+        {/* Navigation - Center */}
+        <nav className="hidden md:flex items-center gap-1">
+          {navLinks.map((link) => {
+            const isActive = location.pathname === link.path;
+            const Icon = link.icon;
+            return (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
+                  isActive
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{link.label}</span>
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Cart */}
         <Link
-          to="/shop/cart"
-          className="relative flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+          to="/cart"
+          className="relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200"
         >
           <ShoppingCart className="w-5 h-5" />
-          {cartCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center shadow-sm">
-              {cartCount}
+          {cartItemCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center">
+              {cartItemCount}
             </span>
           )}
         </Link>
