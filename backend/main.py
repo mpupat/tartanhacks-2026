@@ -527,6 +527,373 @@ async def get_platform_analytics():
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# ============================================
+# BLOCKCHAIN EXPLORER ENDPOINTS
+# ============================================
+
+@app.get("/blockchain/status")
+async def get_blockchain_status():
+    """
+    Get current blockchain connection status.
+    Used by the Blockchain Explorer dashboard.
+    """
+    try:
+        await initialize_wallets()
+        
+        # Get server info
+        from xrpl.models.requests import ServerInfo
+        server_info = await client.request(ServerInfo())
+        
+        # Get transaction count from company wallet
+        tx_count = 0
+        if COMPANY_WALLET:
+            request = AccountTx(
+                account=COMPANY_WALLET.address,
+                ledger_index_min=-1,
+                limit=1
+            )
+            response = await client.request(request)
+            # The marker tells us there are more transactions
+            tx_count = len(response.result.get("transactions", []))
+            
+            # Get full count
+            full_request = AccountTx(
+                account=COMPANY_WALLET.address,
+                ledger_index_min=-1
+            )
+            full_response = await client.request(full_request)
+            tx_count = len(full_response.result.get("transactions", []))
+        
+        validated_ledger = server_info.result.get("info", {}).get("validated_ledger", {})
+        
+        return {
+            "connected": True,
+            "network": "Testnet",
+            "network_url": XRPL_URL,
+            "latest_ledger": validated_ledger.get("seq", 0),
+            "ledger_age_seconds": validated_ledger.get("age", 0),
+            "our_transaction_count": tx_count,
+            "company_wallet": COMPANY_WALLET.address if COMPANY_WALLET else None,
+            "escrow_wallet": ESCROW_WALLET.address if ESCROW_WALLET else None,
+            "explorer_base": "https://testnet.xrpl.org"
+        }
+        
+    except Exception as e:
+        print(f"❌ Blockchain Status Error: {e}")
+        return {
+            "connected": False,
+            "network": "Testnet",
+            "error": str(e)
+        }
+
+
+@app.get("/blockchain/wallets")
+async def get_all_wallets():
+    """
+    Get info on all platform wallets.
+    """
+    try:
+        await initialize_wallets()
+        
+        wallets = []
+        
+        # Company wallet
+        if COMPANY_WALLET:
+            try:
+                info = await client.request(AccountInfo(
+                    account=COMPANY_WALLET.address,
+                    ledger_index="validated"
+                ))
+                tx_request = AccountTx(
+                    account=COMPANY_WALLET.address,
+                    ledger_index_min=-1
+                )
+                tx_response = await client.request(tx_request)
+                
+                wallets.append({
+                    "type": "company",
+                    "label": "Company Treasury",
+                    "icon": "🏢",
+                    "address": COMPANY_WALLET.address,
+                    "balance_xrp": float(drops_to_xrp(info.result["account_data"]["Balance"])),
+                    "transaction_count": len(tx_response.result.get("transactions", [])),
+                    "purpose": "Main treasury & transaction logging",
+                    "explorer_url": f"https://testnet.xrpl.org/accounts/{COMPANY_WALLET.address}"
+                })
+            except Exception as e:
+                print(f"Company wallet error: {e}")
+        
+        # Escrow wallet
+        if ESCROW_WALLET:
+            try:
+                info = await client.request(AccountInfo(
+                    account=ESCROW_WALLET.address,
+                    ledger_index="validated"
+                ))
+                
+                wallets.append({
+                    "type": "escrow",
+                    "label": "Escrow Wallet",
+                    "icon": "🔒",
+                    "address": ESCROW_WALLET.address,
+                    "balance_xrp": float(drops_to_xrp(info.result["account_data"]["Balance"])),
+                    "transaction_count": 0,
+                    "purpose": "Holds funds during prediction periods",
+                    "explorer_url": f"https://testnet.xrpl.org/accounts/{ESCROW_WALLET.address}"
+                })
+            except Exception as e:
+                print(f"Escrow wallet error: {e}")
+        
+        # User wallets
+        user_wallet_list = []
+        total_user_balance = 0
+        for user_id, wallet in USER_WALLETS.items():
+            try:
+                info = await client.request(AccountInfo(
+                    account=wallet.address,
+                    ledger_index="validated"
+                ))
+                balance = float(drops_to_xrp(info.result["account_data"]["Balance"]))
+                total_user_balance += balance
+                user_wallet_list.append({
+                    "user_id": user_id,
+                    "address": wallet.address,
+                    "balance_xrp": balance
+                })
+            except:
+                pass
+        
+        return {
+            "platform_wallets": wallets,
+            "user_wallets": {
+                "count": len(USER_WALLETS),
+                "total_balance_xrp": round(total_user_balance, 2),
+                "wallets": user_wallet_list[:10]  # Show first 10
+            }
+        }
+        
+    except Exception as e:
+        print(f"❌ Wallets Error: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/blockchain/feed")
+async def get_transaction_feed(limit: int = 20):
+    """
+    Get recent transaction feed for live display.
+    """
+    try:
+        await initialize_wallets()
+        
+        if not COMPANY_WALLET:
+            return {"transactions": [], "total": 0}
+        
+        request = AccountTx(
+            account=COMPANY_WALLET.address,
+            ledger_index_min=-1,
+            limit=limit
+        )
+        response = await client.request(request)
+        
+        transactions = []
+        for tx_data in response.result.get("transactions", []):
+            tx = tx_data.get("tx", {})
+            meta = tx_data.get("meta", {})
+            
+            # Parse memo
+            memo_data = {}
+            memos = tx.get("Memos", [])
+            if memos and len(memos) > 0:
+                try:
+                    memo_hex = memos[0].get("Memo", {}).get("MemoData", "")
+                    if memo_hex:
+                        memo_json = json.loads(binascii.unhexlify(memo_hex).decode())
+                        memo_data = memo_json
+                except:
+                    pass
+            
+            tx_type = memo_data.get("type", "UNKNOWN")
+            
+            # Format transaction for feed
+            parsed_tx = {
+                "hash": tx.get("hash", ""),
+                "type": tx_type,
+                "ledger_index": tx.get("ledger_index", 0),
+                "timestamp": ripple_time_to_datetime(tx.get("date", 0)).isoformat() if tx.get("date") else None,
+                "validated": meta.get("TransactionResult") == "tesSUCCESS",
+                "explorer_url": f"https://testnet.xrpl.org/transactions/{tx.get('hash', '')}",
+                "data": memo_data
+            }
+            
+            # Add type-specific display info
+            if tx_type == "PURCHASE":
+                parsed_tx["icon"] = "🛒"
+                parsed_tx["title"] = "Purchase"
+                parsed_tx["description"] = f"{memo_data.get('item_name', 'Item')} • ${memo_data.get('purchase_amount', 0):.2f}"
+                parsed_tx["color"] = "blue"
+            elif tx_type == "PREDICTION_CONFIG":
+                parsed_tx["icon"] = "📊"
+                parsed_tx["title"] = "Prediction Configured"
+                parsed_tx["description"] = f"{memo_data.get('market_title', 'Market')[:40]}... • {memo_data.get('prediction_direction', '')} at {memo_data.get('entry_price', 0)}¢"
+                parsed_tx["color"] = "purple"
+            elif tx_type == "SETTLEMENT":
+                outcome = memo_data.get("outcome", "")
+                parsed_tx["icon"] = "✅" if outcome == "win" else "❌"
+                parsed_tx["title"] = f"Settlement - {'WIN' if outcome == 'win' else 'LOSS'}"
+                cashback = memo_data.get("cashback_amount", 0)
+                parsed_tx["description"] = f"{'+'if cashback >= 0 else ''}${cashback:.2f} cashback"
+                parsed_tx["color"] = "green" if outcome == "win" else "red"
+            elif tx_type == "CASHBACK_PAYMENT":
+                parsed_tx["icon"] = "💰"
+                parsed_tx["title"] = "Cashback Paid"
+                parsed_tx["description"] = f"XRP sent to user"
+                parsed_tx["color"] = "gold"
+            else:
+                parsed_tx["icon"] = "📝"
+                parsed_tx["title"] = "Transaction"
+                parsed_tx["description"] = tx_type
+                parsed_tx["color"] = "gray"
+            
+            transactions.append(parsed_tx)
+        
+        return {
+            "transactions": transactions,
+            "total": len(transactions)
+        }
+        
+    except Exception as e:
+        print(f"❌ Feed Error: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/blockchain/verify/{tx_hash}")
+async def verify_transaction(tx_hash: str):
+    """
+    Verify a specific transaction by hash.
+    """
+    try:
+        from xrpl.models.requests import Tx
+        
+        request = Tx(transaction=tx_hash)
+        response = await client.request(request)
+        
+        tx = response.result
+        
+        # Parse memo
+        memo_data = {}
+        memos = tx.get("Memos", [])
+        if memos and len(memos) > 0:
+            try:
+                memo_hex = memos[0].get("Memo", {}).get("MemoData", "")
+                if memo_hex:
+                    memo_json = json.loads(binascii.unhexlify(memo_hex).decode())
+                    memo_data = memo_json
+            except:
+                pass
+        
+        return {
+            "verified": True,
+            "hash": tx_hash,
+            "ledger_index": tx.get("ledger_index", 0),
+            "timestamp": ripple_time_to_datetime(tx.get("date", 0)).isoformat() if tx.get("date") else None,
+            "validated": tx.get("validated", False),
+            "transaction_type": tx.get("TransactionType", ""),
+            "account": tx.get("Account", ""),
+            "destination": tx.get("Destination", ""),
+            "data": memo_data,
+            "explorer_url": f"https://testnet.xrpl.org/transactions/{tx_hash}"
+        }
+        
+    except Exception as e:
+        return {
+            "verified": False,
+            "hash": tx_hash,
+            "error": str(e)
+        }
+
+
+@app.get("/blockchain/user/{user_id}/trail")
+async def get_user_blockchain_trail(user_id: int):
+    """
+    Get a user's complete blockchain trail.
+    """
+    try:
+        await initialize_wallets()
+        
+        if not COMPANY_WALLET:
+            return {"user_id": user_id, "transactions": [], "total": 0}
+        
+        # Get all transactions and filter by user_id in memo
+        request = AccountTx(
+            account=COMPANY_WALLET.address,
+            ledger_index_min=-1
+        )
+        response = await client.request(request)
+        
+        user_txs = []
+        for tx_data in response.result.get("transactions", []):
+            tx = tx_data.get("tx", {})
+            meta = tx_data.get("meta", {})
+            
+            # Parse memo
+            memos = tx.get("Memos", [])
+            if memos and len(memos) > 0:
+                try:
+                    memo_hex = memos[0].get("Memo", {}).get("MemoData", "")
+                    if memo_hex:
+                        memo_json = json.loads(binascii.unhexlify(memo_hex).decode())
+                        
+                        # Check if this transaction belongs to the user
+                        if memo_json.get("user_id") == user_id:
+                            user_txs.append({
+                                "hash": tx.get("hash", ""),
+                                "type": memo_json.get("type", "UNKNOWN"),
+                                "ledger_index": tx.get("ledger_index", 0),
+                                "timestamp": ripple_time_to_datetime(tx.get("date", 0)).isoformat() if tx.get("date") else None,
+                                "validated": meta.get("TransactionResult") == "tesSUCCESS",
+                                "data": memo_json,
+                                "explorer_url": f"https://testnet.xrpl.org/transactions/{tx.get('hash', '')}"
+                            })
+                except:
+                    pass
+        
+        # Get user wallet info if exists
+        user_wallet_info = None
+        if user_id in USER_WALLETS:
+            wallet = USER_WALLETS[user_id]
+            try:
+                info = await client.request(AccountInfo(
+                    account=wallet.address,
+                    ledger_index="validated"
+                ))
+                user_wallet_info = {
+                    "address": wallet.address,
+                    "balance_xrp": float(drops_to_xrp(info.result["account_data"]["Balance"])),
+                    "explorer_url": f"https://testnet.xrpl.org/accounts/{wallet.address}"
+                }
+            except:
+                user_wallet_info = {
+                    "address": wallet.address,
+                    "balance_xrp": 0,
+                    "explorer_url": f"https://testnet.xrpl.org/accounts/{wallet.address}"
+                }
+        
+        return {
+            "user_id": user_id,
+            "wallet": user_wallet_info,
+            "transactions": user_txs,
+            "total": len(user_txs)
+        }
+        
+    except Exception as e:
+        print(f"❌ User Trail Error: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # Legacy endpoint for backward compatibility
 @app.post("/log")
 async def legacy_log(user_id: int, amount: float, data: str):

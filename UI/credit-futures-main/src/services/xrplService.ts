@@ -83,6 +83,82 @@ export interface XRPLServerStatus {
     explorer_base: string;
 }
 
+// Blockchain Explorer Types
+export interface BlockchainStatus {
+    connected: boolean;
+    network: string;
+    network_url?: string;
+    latest_ledger: number;
+    ledger_age_seconds: number;
+    our_transaction_count: number;
+    company_wallet: string | null;
+    escrow_wallet: string | null;
+    explorer_base: string;
+    error?: string;
+}
+
+export interface PlatformWallet {
+    type: string;
+    label: string;
+    icon: string;
+    address: string;
+    balance_xrp: number;
+    transaction_count: number;
+    purpose: string;
+    explorer_url: string;
+}
+
+export interface UserWalletSummary {
+    count: number;
+    total_balance_xrp: number;
+    wallets: { user_id: number; address: string; balance_xrp: number }[];
+}
+
+export interface AllWalletsResponse {
+    platform_wallets: PlatformWallet[];
+    user_wallets: UserWalletSummary;
+}
+
+export interface BlockchainTransaction {
+    hash: string;
+    type: string;
+    ledger_index: number;
+    timestamp: string;
+    validated: boolean;
+    explorer_url: string;
+    icon?: string;
+    title?: string;
+    description?: string;
+    color?: string;
+    data: Record<string, any>;
+}
+
+export interface TransactionFeedResponse {
+    transactions: BlockchainTransaction[];
+    total: number;
+}
+
+export interface VerificationResult {
+    verified: boolean;
+    hash: string;
+    ledger_index?: number;
+    timestamp?: string;
+    validated?: boolean;
+    transaction_type?: string;
+    account?: string;
+    destination?: string;
+    data?: Record<string, any>;
+    explorer_url?: string;
+    error?: string;
+}
+
+export interface UserBlockchainTrail {
+    user_id: number;
+    wallet: { address: string; balance_xrp: number; explorer_url: string } | null;
+    transactions: BlockchainTransaction[];
+    total: number;
+}
+
 // ============================================
 // API FUNCTIONS
 // ============================================
@@ -264,6 +340,75 @@ export async function getUserBlockchainHistory(
 export async function getPlatformAnalytics(): Promise<XRPLAnalytics | null> {
     try {
         const response = await fetch(`${XRPL_API_BASE}/analytics`);
+        if (!response.ok) return null;
+        return await response.json();
+    } catch {
+        return null;
+    }
+}
+
+// ============================================
+// BLOCKCHAIN EXPLORER API
+// ============================================
+
+/**
+ * Get blockchain network status
+ */
+export async function getBlockchainStatus(): Promise<BlockchainStatus | null> {
+    try {
+        const response = await fetch(`${XRPL_API_BASE}/blockchain/status`);
+        if (!response.ok) return null;
+        return await response.json();
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Get all platform wallets
+ */
+export async function getAllWallets(): Promise<AllWalletsResponse | null> {
+    try {
+        const response = await fetch(`${XRPL_API_BASE}/blockchain/wallets`);
+        if (!response.ok) return null;
+        return await response.json();
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Get transaction feed for live display
+ */
+export async function getTransactionFeed(limit: number = 20): Promise<TransactionFeedResponse | null> {
+    try {
+        const response = await fetch(`${XRPL_API_BASE}/blockchain/feed?limit=${limit}`);
+        if (!response.ok) return null;
+        return await response.json();
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Verify a transaction by hash
+ */
+export async function verifyTransaction(txHash: string): Promise<VerificationResult | null> {
+    try {
+        const response = await fetch(`${XRPL_API_BASE}/blockchain/verify/${txHash}`);
+        if (!response.ok) return null;
+        return await response.json();
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Get user's blockchain trail
+ */
+export async function getUserBlockchainTrail(userId: number): Promise<UserBlockchainTrail | null> {
+    try {
+        const response = await fetch(`${XRPL_API_BASE}/blockchain/user/${userId}/trail`);
         if (!response.ok) return null;
         return await response.json();
     } catch {

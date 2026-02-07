@@ -11,6 +11,7 @@ export interface Product {
   description: string;
   category: string;
   icon: string;
+  image: string;
 }
 
 export interface CartItem {
@@ -64,18 +65,126 @@ interface AppState {
 
 // Mock Products
 export const PRODUCTS: Product[] = [
-  { id: '1', name: 'Cloud Server Hosting', type: 'SERVICE', price: 299.99, description: '12-month enterprise hosting', category: 'Infrastructure', icon: '☁️' },
-  { id: '2', name: 'Developer MacBook Pro', type: 'PHYSICAL', price: 2499.99, description: 'M3 Pro 14" 18GB RAM', category: 'Hardware', icon: '💻' },
-  { id: '3', name: 'API Gateway License', type: 'DIGITAL', price: 499.99, description: 'Enterprise API management', category: 'Software', icon: '🔐' },
-  { id: '4', name: 'Database Cluster', type: 'SERVICE', price: 899.99, description: 'Managed PostgreSQL cluster', category: 'Infrastructure', icon: '🗄️' },
-  { id: '5', name: 'SSL Certificate Bundle', type: 'DIGITAL', price: 149.99, description: 'Wildcard SSL for 2 years', category: 'Security', icon: '🔒' },
-  { id: '6', name: 'Mechanical Keyboard', type: 'PHYSICAL', price: 299.99, description: 'Custom mechanical keyboard', category: 'Hardware', icon: '⌨️' },
-  { id: '7', name: 'Code Review Service', type: 'SERVICE', price: 799.99, description: 'Expert code audit', category: 'Consulting', icon: '🔍' },
-  { id: '8', name: 'Ultra-wide Monitor', type: 'PHYSICAL', price: 1299.99, description: '34" curved 4K display', category: 'Hardware', icon: '🖥️' },
-  { id: '9', name: 'DevOps Toolkit', type: 'DIGITAL', price: 199.99, description: 'CI/CD tools bundle', category: 'Software', icon: '🛠️' },
-  { id: '10', name: 'Premium Domain', type: 'DIGITAL', price: 2999.99, description: 'Premium .io domain, lifetime', category: 'Digital', icon: '🌐' },
-  { id: '11', name: 'Ergonomic Chair', type: 'PHYSICAL', price: 1299.99, description: 'Herman Miller Aeron', category: 'Hardware', icon: '🪑' },
-  { id: '12', name: 'CI/CD Pipeline Setup', type: 'SERVICE', price: 449.99, description: 'Complete DevOps configuration', category: 'Infrastructure', icon: '🚀' },
+  {
+    id: '1',
+    name: 'Cloud Server Hosting',
+    type: 'SERVICE',
+    price: 299.99,
+    description: '12-month enterprise hosting',
+    category: 'Infrastructure',
+    icon: '☁️',
+    image: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&q=80&w=800'
+  },
+  {
+    id: '2',
+    name: 'Developer MacBook Pro',
+    type: 'PHYSICAL',
+    price: 2499.99,
+    description: 'M3 Pro 14" 18GB RAM',
+    category: 'Hardware',
+    icon: '💻',
+    image: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800'
+  },
+  {
+    id: '3',
+    name: 'API Gateway License',
+    type: 'DIGITAL',
+    price: 499.99,
+    description: 'Enterprise API management',
+    category: 'Software',
+    icon: '🔐',
+    image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=800'
+  },
+  {
+    id: '4',
+    name: 'Wireless Headphones',
+    type: 'PHYSICAL',
+    price: 349.99,
+    description: 'Noise cancelling over-ear headphones',
+    category: 'Hardware',
+    icon: '🎧',
+    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=800'
+  },
+  {
+    id: '5',
+    name: 'SSL Certificate Bundle',
+    type: 'DIGITAL',
+    price: 149.99,
+    description: 'Wildcard SSL for 2 years',
+    category: 'Security',
+    icon: '🔒',
+    image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&q=80&w=800'
+  },
+  {
+    id: '6',
+    name: 'Mechanical Keyboard',
+    type: 'PHYSICAL',
+    price: 299.99,
+    description: 'Custom mechanical keyboard',
+    category: 'Hardware',
+    icon: '⌨️',
+    image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?auto=format&fit=crop&q=80&w=800'
+  },
+  {
+    id: '7',
+    name: 'Code Review Service',
+    type: 'SERVICE',
+    price: 799.99,
+    description: 'Expert code audit',
+    category: 'Consulting',
+    icon: '🔍',
+    image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=800'
+  },
+  {
+    id: '8',
+    name: 'Ultra-wide Monitor',
+    type: 'PHYSICAL',
+    price: 1299.99,
+    description: '34" curved 4K display',
+    category: 'Hardware',
+    icon: '🖥️',
+    image: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&q=80&w=800'
+  },
+  {
+    id: '9',
+    name: 'Smart Home Hub',
+    type: 'PHYSICAL',
+    price: 149.99,
+    description: 'Central control for all devices',
+    category: 'Hardware',
+    icon: '🏠',
+    image: 'https://images.unsplash.com/photo-1558002038-109155714297?auto=format&fit=crop&q=80&w=800'
+  },
+  {
+    id: '10',
+    name: 'Premium Domain',
+    type: 'DIGITAL',
+    price: 2999.99,
+    description: 'Premium .io domain, lifetime',
+    category: 'Digital',
+    icon: '🌐',
+    image: 'https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?auto=format&fit=crop&q=80&w=800'
+  },
+  {
+    id: '11',
+    name: 'Ergonomic Chair',
+    type: 'PHYSICAL',
+    price: 1299.99,
+    description: 'Herman Miller Aeron',
+    category: 'Hardware',
+    icon: '🪑',
+    image: 'https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?auto=format&fit=crop&q=80&w=800'
+  },
+  {
+    id: '12',
+    name: 'CI/CD Pipeline Setup',
+    type: 'SERVICE',
+    price: 449.99,
+    description: 'Complete DevOps configuration',
+    category: 'Infrastructure',
+    icon: '🚀',
+    image: 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?auto=format&fit=crop&q=80&w=800'
+  },
 ];
 
 // Initial mock positions with new Kalshi-based structure

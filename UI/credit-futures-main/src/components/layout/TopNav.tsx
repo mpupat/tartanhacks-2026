@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, Wallet, Store, Compass, TrendingUp, History } from 'lucide-react';
+import { ShoppingCart, Wallet, Store, Compass, TrendingUp, History, Link2 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { cn } from '@/lib/utils';
 
@@ -9,6 +9,7 @@ const navLinks = [
   { path: '/explorer', label: 'Explorer', icon: Compass },
   { path: '/terminal', label: 'Positions', icon: TrendingUp },
   { path: '/history', label: 'History', icon: History },
+  { path: '/blockchain', label: 'Blockchain', icon: Link2 },
 ];
 
 export const TopNav = () => {

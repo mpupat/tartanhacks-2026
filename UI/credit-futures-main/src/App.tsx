@@ -12,6 +12,7 @@ import Cart from "./pages/Cart";
 import Explorer from "./pages/Explorer";
 import Terminal from "./pages/Terminal";
 import History from "./pages/History";
+import Blockchain from "./pages/Blockchain";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,7 +36,9 @@ const App = () => (
             <Route path="/explorer" element={<Explorer />} />
             <Route path="/terminal" element={<Terminal />} />
             <Route path="/history" element={<History />} />
+            <Route path="/blockchain" element={<Blockchain />} />
           </Route>
+
 
           <Route path="*" element={<NotFound />} />
         </Routes>
