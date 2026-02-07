@@ -65,6 +65,7 @@ interface AppState {
   balance: number;
   creditOutstanding: number;
   updateBalance: (amount: number) => void;
+  resetData: () => void;
 }
 
 
@@ -541,6 +542,15 @@ export const useAppStore = create<AppState>()(
       updateBalance: (amount) => set((state) => ({
         balance: state.balance + amount,
       })),
+
+      // Reset
+      resetData: () => set({
+        cart: [],
+        positions: INITIAL_POSITIONS,
+        savedMarkets: [],
+        balance: 15420.50,
+        creditOutstanding: 4799.96,
+      }),
     }),
     {
       name: 'winback-storage',

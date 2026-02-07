@@ -1,22 +1,41 @@
+
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
-  Clock, AlertCircle, CheckCircle, TrendingUp, TrendingDown,
-  Settings, X, Star, ArrowRight, Compass, Search
+  ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown, AlertCircle, CheckCircle,
+  Clock, Check, X, Lock, ExternalLink, RefreshCw, Loader2, Settings, Star,
+  ArrowRight, Compass, Search, Link2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/store/appStore';
+import { useToast } from "@/components/ui/use-toast";
 import type { Position, KalshiMarket, MarketCategory, PredictionDirection } from '@/types/kalshi';
-import { fetchMarkets, CATEGORY_CONFIG, formatTimeRemaining, calculatePositionPnL } from '@/services/kalshiService';
+import { fetchMarkets, CATEGORY_CONFIG, formatTimeRemaining, calculatePositionPnL, checkSettlementTrigger } from '@/services/kalshiService';
+import { logPredictionToXRPL, settlePositionOnXRPL, checkXRPLStatus } from '@/services/xrplService';
 
 type TabType = 'all' | 'unconfigured' | 'active' | 'settled';
 
 export default function Terminal() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { positions, savedMarkets, configurePosition, updatePositionPrice } = useAppStore();
+  const { positions, configurePosition, updatePositionPrice, settlePosition, resetData } = useAppStore();
+  const { toast } = useToast();
+
+  const handleReset = () => {
+    if (window.confirm("Are you sure you want to reset all data? This will restore the initial demo state.")) {
+      resetData();
+      toast({
+        title: "Demo Reset",
+        description: "Application state has been restored to default.",
+      });
+      // Small delay to let toast show before reload if needed, 
+      // but actually Zustand update should trigger re-render immediately.
+      // Reloading is safer for charts/timers to reset cleanly.
+      setTimeout(() => window.location.reload(), 1000);
+    }
+  };
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [configuringPosition, setConfiguringPosition] = useState<Position | null>(null);
 
@@ -58,6 +77,67 @@ export default function Terminal() {
     return () => clearInterval(interval);
   }, [positions]);
 
+  // AUTO-SETTLEMENT LOOP
+  // Checks active positions every 5 seconds for settlement conditions
+  useEffect(() => {
+    const checkSettlements = async () => {
+      const activePositions = positions.filter(p => p.status === 'active');
+
+      for (const position of activePositions) {
+        // Mock market data for settlement check (in real app, fetch latest market status)
+        const mockMarket: KalshiMarket = {
+          // Minimal required fields for checkSettlementTrigger
+          status: 'active',
+          close_date: position.market_closes_at || new Date().toISOString(),
+          // ... other fields not strictly needed by current logic unless settled
+        } as any;
+
+        const { shouldSettle, reason, outcome } = checkSettlementTrigger(position, mockMarket);
+
+        if (shouldSettle && reason && outcome) {
+          const { pnl, pnlPercent } = calculatePositionPnL(position);
+
+          // Execute Settlement
+          settlePosition(
+            position.id,
+            reason,
+            outcome,
+            pnl, // cashback amount is pnl logic here roughly
+            pnlPercent
+          );
+
+          // Log to Blockchain
+          toast({
+            title: "Position Settled",
+            description: `Settling ${outcome.toUpperCase()} on XRPL...`,
+          });
+
+          await settlePositionOnXRPL(
+            1, // Demo User ID
+            position.id,
+            position.market_ticker || 'UNKNOWN',
+            outcome,
+            position.entry_price || 0,
+            position.current_price || 0,
+            reason,
+            pnl,
+            pnlPercent
+          );
+
+          toast({
+            title: "Settlement Confirmed",
+            description: "Transaction recorded on blockchain ✅",
+            variant: "default",
+          });
+        }
+      }
+    };
+
+    const interval = setInterval(checkSettlements, 5000);
+    return () => clearInterval(interval);
+  }, [positions, settlePosition, toast]);
+
+
   const tabs: { value: TabType; label: string; count?: number }[] = [
     { value: 'all', label: 'All' },
     { value: 'unconfigured', label: 'Unconfigured', count: unconfiguredCount },
@@ -68,11 +148,22 @@ export default function Terminal() {
   return (
     <main className="container py-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Positions</h1>
-        <p className="text-muted-foreground">
-          Manage your purchases and predictions
-        </p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-bold tracking-tight">Terminal</h1>
+          <p className="text-muted-foreground">
+            Manage your purchases and configure prediction markets to hedge your risk.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleReset}
+          className="text-muted-foreground hover:text-destructive hover:border-destructive transition-colors gap-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Reset Demo
+        </Button>
       </div>
 
       {/* Tabs */}
@@ -291,7 +382,7 @@ function ActiveCard({ position }: { position: Position }) {
               isWinning ? 'bg-emerald-500' : 'bg-red-500'
             )}
             style={{
-              width: `${Math.min(100, Math.abs(pnlPercent) / (position.max_reward_percent || 20) * 100)}%`
+              width: `${Math.min(100, Math.abs(pnlPercent) / (position.max_reward_percent || 20) * 100)}% `
             }}
           />
         </div>
@@ -409,6 +500,7 @@ function ConfigurationModal({
 }) {
   const navigate = useNavigate();
   const { savedMarkets } = useAppStore();
+  const { toast } = useToast(); // Use toast for feedback
   const [step, setStep] = useState(1);
   const [markets, setMarkets] = useState<KalshiMarket[]>([]);
   const [selectedMarket, setSelectedMarket] = useState<KalshiMarket | null>(null);
@@ -416,6 +508,7 @@ function ConfigurationModal({
   const [maxReward, setMaxReward] = useState(20);
   const [maxLoss, setMaxLoss] = useState(5);
   const [timeLimit, setTimeLimit] = useState(7);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchMarkets({ status: 'open', sortBy: 'trending' }).then(data => {
@@ -431,11 +524,13 @@ function ConfigurationModal({
     });
   }, [preselectedMarket]);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!selectedMarket) return;
 
+    setIsSubmitting(true);
     const entryPrice = direction === 'YES' ? selectedMarket.yes_price : selectedMarket.no_price;
 
+    // 1. Update Local Store
     onConfigure(
       position.id,
       selectedMarket.ticker,
@@ -448,6 +543,40 @@ function ConfigurationModal({
       maxLoss,
       timeLimit
     );
+
+    // 2. Log to XRPL Blockchain
+    toast({
+      title: "Logging to Blockchain",
+      description: "Recording prediction on XRP Ledger...",
+    });
+
+    try {
+      await logPredictionToXRPL(
+        1, // Demo User ID
+        position.id,
+        position.purchase.id,
+        selectedMarket.ticker,
+        selectedMarket.title,
+        direction,
+        entryPrice,
+        maxReward,
+        maxLoss,
+        timeLimit
+      );
+      toast({
+        title: "Success",
+        description: "Prediction verified on blockchain ✅",
+      });
+    } catch (e) {
+      console.error("Blockchain logging failed", e);
+      toast({
+        title: "Blockchain Error",
+        description: "Prediction saved locally, but blockchain sync failed.",
+        variant: "destructive"
+      });
+    }
+
+    setIsSubmitting(false);
     onClose();
   };
 
@@ -686,10 +815,11 @@ function ConfigurationModal({
               </div>
 
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
+                <Button variant="outline" onClick={() => setStep(2)} className="flex-1" disabled={isSubmitting}>
                   Back
                 </Button>
-                <Button onClick={handleConfirm} className="flex-1">
+                <Button onClick={handleConfirm} className="flex-1" disabled={isSubmitting}>
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                   Confirm Prediction
                 </Button>
               </div>
