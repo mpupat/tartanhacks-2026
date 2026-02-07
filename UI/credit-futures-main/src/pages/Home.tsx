@@ -24,7 +24,6 @@ const NAV_LINKS = [
   { label: 'Product', href: '#product' },
   { label: 'How It Works', href: '#how-it-works' },
   { label: 'Security', href: '#security' },
-  { label: 'Pricing', href: '#pricing' },
   { label: 'FAQ', href: '#faq' },
 ];
 
@@ -68,26 +67,27 @@ const STEPS = [
 
 const DIFFERENTIATORS = [
   {
-    title: 'Transparent Pricing',
-    description: 'See exactly how much you can win or lose. No hidden fees, no surprises.',
-    icon: Target,
-  },
-  {
-    title: 'Controlled Risk',
-    description: 'Set your own limits. Maximum potential loss is always capped at your terms.',
+    title: 'No Unlimited Downside',
+    description: 'Your downside is capped by design. You choose the cap up front  you will never lose more than your selected amount.',
     icon: Shield,
   },
   {
-    title: 'Gamified Savings',
-    description: 'Turn every purchase into an opportunity. Make saving money exciting.',
-    icon: Sparkles,
+    title: 'Feels Like Normal Banking',
+    description: 'No complex crypto setup. No seed phrases. No wallets to manage. Winback behaves like a traditional card experience.',
+    icon: Lock,
   },
   {
-    title: 'Real-Time Tracking',
-    description: 'Monitor your predictions live. Know exactly where you stand, always.',
+    title: 'Transparent Settlement',
+    description: 'Clear terms, clear outcomes. Every position has explicit rules and an auditable settlement trail.',
     icon: BarChart3,
   },
+  {
+    title: 'Built for Trust',
+    description: 'No hidden mechanics, no confusing fee games. You always know what you can win, and what you can lose before you commit.',
+    icon: Target,
+  },
 ];
+
 
 const PRICING_TIERS = [
   {
@@ -141,8 +141,9 @@ const PRICING_TIERS = [
 const FAQS = [
   {
     question: 'How does the prediction affect my payment?',
-    answer: 'If you predict correctly, you receive cashback on your purchase. If your prediction is wrong, you pay a small premium. The maximum premium is always capped at the limit you set.',
+    answer: 'If you predict correctly, you earn extra cashback on your purchase. If your prediction is wrong, your loss is capped to your selected cashback amount — you never lose more than what you set.',
   },
+
   {
     question: 'What happens if I reach my limit?',
     answer: 'Your prediction automatically settles at your set limit. You\'ll never pay more than your maximum downside setting.',
@@ -389,6 +390,56 @@ export default function Home() {
         </div>
       </section>
 
+      {/* XRP Ledger */}
+      <section id="xrpl" className="py-20 border-t border-border bg-muted/30">
+        <div className="container">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <span className="text-sm font-medium text-primary">Settlement Layer</span>
+              <h2 className="text-3xl md:text-4xl font-bold mt-2 tracking-tight mb-6">
+                Powered by the XRP Ledger
+              </h2>
+              <p className="text-muted-foreground mb-8 leading-relaxed">
+                Winback uses the XRP Ledger as a transparent settlement rail — fast finality, low fees,
+                and auditable transaction history. You get a clean record of what happened and why.
+              </p>
+
+              <div className="space-y-4">
+                {[
+                  { icon: Zap, text: 'Fast settlement with low network fees' },
+                  { icon: Shield, text: 'Auditable, tamper-resistant transaction trail' },
+                  { icon: BarChart3, text: 'Transparent execution and settlement reporting' },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <item.icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <span className="text-sm font-medium">{item.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white border border-border rounded-2xl p-8 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                  <Wallet className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2">Transparent by design</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    No vague fees. No hidden mechanics. Winback is designed to feel like a normal card
+                    product on the surface — with a transparent settlement trail underneath.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+
       {/* Security */}
       <section id="security" className="py-20 border-t border-border">
         <div className="container">
@@ -441,7 +492,7 @@ export default function Home() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="py-20 border-t border-border bg-muted/30">
+      {/* <section id="pricing" className="py-20 border-t border-border bg-muted/30">
         <div className="container">
           <div className="text-center mb-16">
             <span className="text-sm font-medium text-primary">Pricing</span>
@@ -496,7 +547,7 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* FAQ */}
       <section id="faq" className="py-20 border-t border-border">
