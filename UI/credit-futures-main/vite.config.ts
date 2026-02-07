@@ -11,6 +11,13 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    proxy: {
+      '/kalshi': {
+        target: 'https://api.elections.kalshi.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/kalshi/, '/trade-api/v2'),
+      },
+    },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

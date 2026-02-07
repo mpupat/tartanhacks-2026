@@ -1,191 +1,192 @@
 // Kalshi API Service Layer
-// Uses mock data for development - can be swapped for real API
+// Fetches real data from Kalshi public API via Vite proxy
+// Strategy: Fetch events first (which have categories), then get markets for each event
 
 import type {
     KalshiMarket,
+    KalshiAPIMarket,
+    KalshiAPIEvent,
+    KalshiEventsResponse,
     MarketCategory,
     MarketFilters,
     MarketOrderbook,
     Position,
-    Purchase,
-    SavedMarket
 } from '@/types/kalshi';
 
 // ============================================
-// MOCK DATA
+// API CONFIGURATION
 // ============================================
 
-const MOCK_MARKETS: KalshiMarket[] = [
-    {
-        ticker: 'WEATHER-NYC-50F-FEB8',
-        event_ticker: 'WEATHER-NYC-FEB8',
-        title: 'NYC hits 50°F today?',
-        subtitle: 'Will Central Park reach 50°F on Feb 8?',
-        category: 'weather',
-        yes_price: 34,
-        no_price: 66,
-        yes_price_change_24h: 12.5,
-        volume_24h: 1247389,
-        total_volume: 3891234,
-        open_interest: 14582,
-        close_date: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
-        expiration_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        status: 'open',
-        result: null,
-        resolution_criteria: 'This market resolves YES if the National Weather Service reports a high temperature of 50°F or above at Central Park station.',
-    },
-    {
-        ticker: 'POLITICS-NOMINEE-MAR1',
-        event_ticker: 'POLITICS-NOMINEE-2026',
-        title: 'Senate confirms nominee by March 1?',
-        subtitle: 'Will the cabinet nominee be confirmed?',
-        category: 'politics',
-        yes_price: 67,
-        no_price: 33,
-        yes_price_change_24h: 3.2,
-        volume_24h: 8420000,
-        total_volume: 24500000,
-        open_interest: 89234,
-        close_date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
-        expiration_date: new Date(Date.now() + 22 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'open',
-        result: null,
-        resolution_criteria: 'Resolves YES if the US Senate votes to confirm the nominee before March 1, 2026 11:59 PM ET.',
-    },
-    {
-        ticker: 'ECON-SP500-6000-MAR',
-        event_ticker: 'ECON-SP500-MAR2026',
-        title: 'S&P 500 above 6000 by March?',
-        subtitle: 'Will S&P 500 close above 6000?',
-        category: 'economics',
-        yes_price: 45,
-        no_price: 55,
-        yes_price_change_24h: -5.3,
-        volume_24h: 3800000,
-        total_volume: 12400000,
-        open_interest: 45678,
-        close_date: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString(),
-        expiration_date: new Date(Date.now() + 29 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'open',
-        result: null,
-        resolution_criteria: 'Resolves YES if S&P 500 index closes at or above 6000 on March 31, 2026.',
-    },
-    {
-        ticker: 'SPORTS-LAKERS-FEB7',
-        event_ticker: 'NBA-GAMES-FEB7',
-        title: 'Lakers win tonight?',
-        subtitle: 'Lakers vs Celtics - Feb 7',
-        category: 'sports',
-        yes_price: 58,
-        no_price: 42,
-        yes_price_change_24h: 8.1,
-        volume_24h: 890000,
-        total_volume: 2100000,
-        open_interest: 12340,
-        close_date: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
-        expiration_date: new Date(Date.now() + 16 * 60 * 60 * 1000).toISOString(),
-        status: 'open',
-        result: null,
-        resolution_criteria: 'Resolves YES if the Los Angeles Lakers defeat the Boston Celtics in their scheduled game.',
-    },
-    {
-        ticker: 'ECON-GAS-UNDER3-FEB',
-        event_ticker: 'ECON-GAS-FEB2026',
-        title: 'Gas under $3/gallon this week?',
-        subtitle: 'National average gasoline price',
-        category: 'economics',
-        yes_price: 23,
-        no_price: 77,
-        yes_price_change_24h: -2.1,
-        volume_24h: 520000,
-        total_volume: 1890000,
-        open_interest: 8900,
-        close_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-        expiration_date: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'open',
-        result: null,
-        resolution_criteria: 'Resolves YES if AAA national average gasoline price drops below $3.00/gallon.',
-    },
-    {
-        ticker: 'CLIMATE-TEMP-RECORD-FEB',
-        event_ticker: 'CLIMATE-2026',
-        title: 'February breaks temperature record?',
-        subtitle: 'Global average temperature anomaly',
-        category: 'climate',
-        yes_price: 71,
-        no_price: 29,
-        yes_price_change_24h: 1.8,
-        volume_24h: 670000,
-        total_volume: 3200000,
-        open_interest: 15600,
-        close_date: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString(),
-        expiration_date: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'open',
-        result: null,
-        resolution_criteria: 'Resolves YES if NOAA declares February 2026 as the warmest February on record.',
-    },
-    {
-        ticker: 'ENTERTAINMENT-OSCAR-DRAMA',
-        event_ticker: 'OSCARS-2026',
-        title: 'Best Picture goes to a drama?',
-        subtitle: '2026 Academy Awards prediction',
-        category: 'entertainment',
-        yes_price: 82,
-        no_price: 18,
-        yes_price_change_24h: 0.5,
-        volume_24h: 340000,
-        total_volume: 1500000,
-        open_interest: 6700,
-        close_date: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString(),
-        expiration_date: new Date(Date.now() + 46 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'open',
-        result: null,
-        resolution_criteria: 'Resolves YES if the Best Picture winner at 2026 Oscars is categorized as Drama by IMDb.',
-    },
-    {
-        ticker: 'FINANCE-FED-RATE-MAR',
-        event_ticker: 'FED-DECISIONS-2026',
-        title: 'Fed cuts rates in March?',
-        subtitle: 'FOMC March meeting decision',
-        category: 'finance',
-        yes_price: 38,
-        no_price: 62,
-        yes_price_change_24h: -8.4,
-        volume_24h: 4200000,
-        total_volume: 18900000,
-        open_interest: 78000,
-        close_date: new Date(Date.now() + 35 * 24 * 60 * 60 * 1000).toISOString(),
-        expiration_date: new Date(Date.now() + 36 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'open',
-        result: null,
-        resolution_criteria: 'Resolves YES if FOMC announces a rate cut at March 2026 meeting.',
-    },
-];
+const API_BASE = '/kalshi'; // Proxied through Vite to https://api.elections.kalshi.com/trade-api/v2
 
 // ============================================
-// MARKET API FUNCTIONS
+// CATEGORY MAPPING
 // ============================================
+
+function normalizeCategory(apiCategory: string): MarketCategory {
+    const categoryMap: Record<string, MarketCategory> = {
+        'politics': 'politics',
+        'economics': 'economics',
+        'climate and weather': 'climate',
+        'climate': 'climate',
+        'sports': 'sports',
+        'entertainment': 'entertainment',
+        'financials': 'financials',
+        'finance': 'financials',
+        'health': 'health',
+        'science and technology': 'science',
+        'science': 'science',
+        'world': 'world',
+        'social': 'social',
+        'crypto': 'crypto',
+        'elections': 'elections',
+        'companies': 'companies',
+        'transportation': 'transportation',
+    };
+
+    const normalized = apiCategory.toLowerCase();
+    return categoryMap[normalized] || 'other';
+}
+
+// ============================================
+// API FETCH FUNCTIONS
+// ============================================
+
+interface EventWithMarkets {
+    event: KalshiAPIEvent;
+    markets: KalshiAPIMarket[];
+}
 
 export async function fetchMarkets(filters: MarketFilters = {}): Promise<KalshiMarket[]> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 300));
+    try {
+        // Step 1: Fetch events (which have proper categories and titles)
+        const eventsResponse = await fetch(`${API_BASE}/events?limit=100&with_nested_markets=true&status=open`);
+        if (!eventsResponse.ok) {
+            // Fallback: try without with_nested_markets
+            return await fetchMarketsSimple(filters);
+        }
 
-    let markets = [...MOCK_MARKETS];
+        const eventsData = await eventsResponse.json();
+
+        // Check if we got nested markets
+        if (eventsData.events?.[0]?.markets) {
+            // API returned markets nested in events - great!
+            return processEventsWithMarkets(eventsData.events, filters);
+        }
+
+        // Fallback to fetching events then markets separately
+        return await fetchMarketsViaEvents(filters);
+    } catch (error) {
+        console.error('Failed to fetch markets:', error);
+        return [];
+    }
+}
+
+// Fallback: Fetch events, then fetch markets for a selection of events
+async function fetchMarketsViaEvents(filters: MarketFilters = {}): Promise<KalshiMarket[]> {
+    try {
+        // Fetch events
+        const eventsResponse = await fetch(`${API_BASE}/events?limit=50`);
+        if (!eventsResponse.ok) throw new Error(`Events API error: ${eventsResponse.status}`);
+
+        const eventsData: KalshiEventsResponse = await eventsResponse.json();
+        let events = eventsData.events;
+
+        // Filter events by category if specified
+        if (filters.category && filters.category !== 'all') {
+            events = events.filter(e => normalizeCategory(e.category) === filters.category);
+        }
+
+        // Limit events to avoid too many requests
+        const eventsToFetch = events.slice(0, 20);
+
+        // Fetch markets for each event in parallel
+        const marketPromises = eventsToFetch.map(async (event) => {
+            try {
+                const response = await fetch(`${API_BASE}/events/${event.event_ticker}`);
+                if (!response.ok) return [];
+
+                const data = await response.json();
+                return (data.markets || []).map((m: KalshiAPIMarket) =>
+                    transformMarket(m, event.category, event.title)
+                );
+            } catch {
+                return [];
+            }
+        });
+
+        const marketsArrays = await Promise.all(marketPromises);
+        let allMarkets = marketsArrays.flat();
+
+        // Filter out combo/parlay markets (have comma-separated titles)
+        allMarkets = allMarkets.filter(m => !m.title.includes(',yes ') && !m.title.startsWith('yes '));
+
+        // Apply client-side filters
+        allMarkets = applyFilters(allMarkets, filters);
+
+        return allMarkets;
+    } catch (error) {
+        console.error('Failed to fetch markets via events:', error);
+        return [];
+    }
+}
+
+// Simpler fallback: Just fetch markets directly and filter
+async function fetchMarketsSimple(filters: MarketFilters = {}): Promise<KalshiMarket[]> {
+    try {
+        const response = await fetch(`${API_BASE}/markets?limit=100`);
+        if (!response.ok) throw new Error(`Markets API error: ${response.status}`);
+
+        const data = await response.json();
+        let markets = (data.markets || [])
+            .filter((m: KalshiAPIMarket) =>
+                // Filter out combo/parlay markets
+                !m.title.includes(',yes ') &&
+                !m.title.startsWith('yes ') &&
+                m.title.length < 150
+            )
+            .map((m: KalshiAPIMarket) => transformMarket(m, 'Other'));
+
+        markets = applyFilters(markets, filters);
+
+        return markets;
+    } catch (error) {
+        console.error('Failed to fetch markets (simple):', error);
+        return [];
+    }
+}
+
+function processEventsWithMarkets(events: any[], filters: MarketFilters): KalshiMarket[] {
+    let allMarkets: KalshiMarket[] = [];
+
+    for (const event of events) {
+        const category = event.category || 'Other';
+        const eventTitle = event.title;
+
+        for (const market of event.markets || []) {
+            // Filter out combo/parlay markets
+            if (market.title?.includes(',yes ') || market.title?.startsWith('yes ')) {
+                continue;
+            }
+            allMarkets.push(transformMarket(market, category, eventTitle));
+        }
+    }
+
+    return applyFilters(allMarkets, filters);
+}
+
+function applyFilters(markets: KalshiMarket[], filters: MarketFilters): KalshiMarket[] {
+    let result = [...markets];
 
     // Filter by category
     if (filters.category && filters.category !== 'all') {
-        markets = markets.filter(m => m.category === filters.category);
+        result = result.filter(m => m.category === filters.category);
     }
 
-    // Filter by status
-    if (filters.status) {
-        markets = markets.filter(m => m.status === filters.status);
-    }
-
-    // Search
+    // Search filter
     if (filters.search) {
         const searchLower = filters.search.toLowerCase();
-        markets = markets.filter(m =>
+        result = result.filter(m =>
             m.title.toLowerCase().includes(searchLower) ||
             m.subtitle.toLowerCase().includes(searchLower)
         );
@@ -194,81 +195,112 @@ export async function fetchMarkets(filters: MarketFilters = {}): Promise<KalshiM
     // Sort
     switch (filters.sortBy) {
         case 'volume':
-            markets.sort((a, b) => b.volume_24h - a.volume_24h);
+            result.sort((a, b) => b.volume_24h - a.volume_24h);
             break;
         case 'ending_soon':
-            markets.sort((a, b) =>
+            result.sort((a, b) =>
                 new Date(a.close_date).getTime() - new Date(b.close_date).getTime()
             );
             break;
         case 'trending':
-            markets.sort((a, b) =>
+            result.sort((a, b) =>
                 Math.abs(b.yes_price_change_24h) - Math.abs(a.yes_price_change_24h)
             );
             break;
         case 'new':
         default:
-            // Keep default order
+            // Keep order
             break;
     }
 
-    return markets;
+    return result;
 }
 
 export async function getMarket(ticker: string): Promise<KalshiMarket | null> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return MOCK_MARKETS.find(m => m.ticker === ticker) || null;
+    try {
+        const response = await fetch(`${API_BASE}/markets/${ticker}`);
+        if (!response.ok) {
+            if (response.status === 404) return null;
+            throw new Error(`Market API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return transformMarket(data.market, 'other');
+    } catch (error) {
+        console.error(`Failed to fetch market ${ticker}:`, error);
+        return null;
+    }
+}
+
+function transformMarket(
+    apiMarket: KalshiAPIMarket,
+    categoryFromEvent?: string,
+    eventTitle?: string
+): KalshiMarket {
+    const category = normalizeCategory(categoryFromEvent || 'other');
+
+    // Use market title, or fall back to event title if market title looks bad
+    let title = apiMarket.title || eventTitle || 'Unknown Market';
+    if (title.includes(',yes ') || title.startsWith('yes ')) {
+        title = eventTitle || 'Unknown Market';
+    }
+
+    // Calculate yes_price from bid/ask or last_price
+    const yesPrice = apiMarket.yes_bid > 0 ? apiMarket.yes_bid : (apiMarket.last_price || 50);
+    const noPrice = apiMarket.no_bid > 0 ? apiMarket.no_bid : (100 - yesPrice);
+
+    // Calculate 24h change
+    let priceChange = 0;
+    if (apiMarket.previous_yes_bid && apiMarket.previous_yes_bid > 0) {
+        priceChange = ((yesPrice - apiMarket.previous_yes_bid) / apiMarket.previous_yes_bid) * 100;
+    } else if (apiMarket.previous_price && apiMarket.previous_price > 0) {
+        priceChange = ((yesPrice - apiMarket.previous_price) / apiMarket.previous_price) * 100;
+    }
+
+    return {
+        ticker: apiMarket.ticker,
+        event_ticker: apiMarket.event_ticker,
+        title,
+        subtitle: apiMarket.subtitle || '',
+        category,
+        yes_price: yesPrice,
+        no_price: noPrice,
+        yes_bid: apiMarket.yes_bid || 0,
+        yes_ask: apiMarket.yes_ask || 0,
+        no_bid: apiMarket.no_bid || 0,
+        no_ask: apiMarket.no_ask || 0,
+        last_price: apiMarket.last_price || 0,
+        yes_price_change_24h: Math.round(priceChange * 10) / 10,
+        volume_24h: apiMarket.volume_24h || 0,
+        total_volume: apiMarket.volume || 0,
+        open_interest: apiMarket.open_interest || 0,
+        close_date: apiMarket.close_time,
+        expiration_date: apiMarket.expiration_time,
+        status: apiMarket.status as KalshiMarket['status'],
+        result: (apiMarket.result as KalshiMarket['result']) || null,
+        resolution_criteria: (apiMarket as any).rules_primary ||
+            `Market settles based on official outcome. Close: ${new Date(apiMarket.close_time).toLocaleDateString()}`,
+    };
 }
 
 export async function getMarketOrderbook(ticker: string): Promise<MarketOrderbook> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    const market = MOCK_MARKETS.find(m => m.ticker === ticker);
+    const market = await getMarket(ticker);
     if (!market) {
         return { yes_bids: [], no_bids: [] };
     }
 
-    // Generate mock orderbook based on current price
+    // Generate orderbook levels based on current prices
     return {
         yes_bids: [
-            { price: market.yes_price, quantity: 1200 },
-            { price: market.yes_price - 1, quantity: 800 },
-            { price: market.yes_price - 2, quantity: 500 },
+            { price: market.yes_bid, quantity: Math.floor(1000 + Math.random() * 2000) },
+            { price: Math.max(1, market.yes_bid - 1), quantity: Math.floor(500 + Math.random() * 1000) },
+            { price: Math.max(1, market.yes_bid - 2), quantity: Math.floor(200 + Math.random() * 500) },
         ],
         no_bids: [
-            { price: market.no_price, quantity: 1500 },
-            { price: market.no_price - 1, quantity: 1000 },
-            { price: market.no_price - 2, quantity: 750 },
+            { price: market.no_bid, quantity: Math.floor(1000 + Math.random() * 2000) },
+            { price: Math.max(1, market.no_bid - 1), quantity: Math.floor(500 + Math.random() * 1000) },
+            { price: Math.max(1, market.no_bid - 2), quantity: Math.floor(200 + Math.random() * 500) },
         ],
-    };
-}
-
-// ============================================
-// PRICE SIMULATION (for real-time updates)
-// ============================================
-
-let priceOffsets: Record<string, number> = {};
-
-export function simulatePriceUpdate(market: KalshiMarket): KalshiMarket {
-    // Add small random price movement
-    if (!priceOffsets[market.ticker]) {
-        priceOffsets[market.ticker] = 0;
-    }
-
-    const change = (Math.random() - 0.5) * 4; // -2 to +2 cents
-    priceOffsets[market.ticker] += change;
-
-    // Clamp offset
-    priceOffsets[market.ticker] = Math.max(-10, Math.min(10, priceOffsets[market.ticker]));
-
-    const newYesPrice = Math.max(1, Math.min(99,
-        Math.round(market.yes_price + priceOffsets[market.ticker])
-    ));
-
-    return {
-        ...market,
-        yes_price: newYesPrice,
-        no_price: 100 - newYesPrice,
     };
 }
 
@@ -277,20 +309,27 @@ export function simulatePriceUpdate(market: KalshiMarket): KalshiMarket {
 // ============================================
 
 export const CATEGORY_CONFIG: Record<MarketCategory, { icon: string; label: string; color: string }> = {
-    weather: { icon: '🌡️', label: 'Weather', color: 'bg-blue-100 text-blue-700 border-blue-200' },
     politics: { icon: '🗳️', label: 'Politics', color: 'bg-purple-100 text-purple-700 border-purple-200' },
     economics: { icon: '📈', label: 'Economics', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+    climate: { icon: '🌡️', label: 'Climate', color: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
     sports: { icon: '⚽', label: 'Sports', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-    climate: { icon: '🌍', label: 'Climate', color: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
     entertainment: { icon: '🎬', label: 'Entertainment', color: 'bg-pink-100 text-pink-700 border-pink-200' },
-    finance: { icon: '💰', label: 'Finance', color: 'bg-green-100 text-green-700 border-green-200' },
-    crypto: { icon: '₿', label: 'Crypto', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+    financials: { icon: '💰', label: 'Financials', color: 'bg-green-100 text-green-700 border-green-200' },
+    health: { icon: '🏥', label: 'Health', color: 'bg-red-100 text-red-700 border-red-200' },
+    science: { icon: '🔬', label: 'Science', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+    world: { icon: '🌍', label: 'World', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+    social: { icon: '👥', label: 'Social', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+    crypto: { icon: '₿', label: 'Crypto', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+    elections: { icon: '🗳️', label: 'Elections', color: 'bg-violet-100 text-violet-700 border-violet-200' },
+    companies: { icon: '🏢', label: 'Companies', color: 'bg-slate-100 text-slate-700 border-slate-200' },
+    transportation: { icon: '✈️', label: 'Transport', color: 'bg-sky-100 text-sky-700 border-sky-200' },
     other: { icon: '📊', label: 'Other', color: 'bg-gray-100 text-gray-700 border-gray-200' },
 };
 
 export const ALL_CATEGORIES: MarketCategory[] = [
-    'weather', 'politics', 'economics', 'sports',
-    'climate', 'entertainment', 'finance', 'crypto', 'other'
+    'politics', 'economics', 'climate', 'sports', 'entertainment',
+    'financials', 'health', 'science', 'world', 'social',
+    'crypto', 'elections', 'companies', 'transportation', 'other'
 ];
 
 // ============================================
@@ -308,6 +347,14 @@ export function formatTimeRemaining(dateString: string): string {
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
+    if (days > 365) {
+        const years = Math.floor(days / 365);
+        return `${years}y+`;
+    }
+    if (days > 30) {
+        const months = Math.floor(days / 30);
+        return `${months}mo`;
+    }
     if (days > 0) return `${days}d ${hours}h`;
     if (hours > 0) return `${hours}h ${minutes}m`;
     return `${minutes}m`;
@@ -321,6 +368,23 @@ export function formatVolume(volume: number): string {
         return `$${(volume / 1000).toFixed(0)}K`;
     }
     return `$${volume}`;
+}
+
+// ============================================
+// PRICE SIMULATION (for real-time updates)
+// ============================================
+
+export function simulatePriceUpdate(market: KalshiMarket): KalshiMarket {
+    const change = (Math.random() - 0.5) * 2;
+    const newYesPrice = Math.max(1, Math.min(99, Math.round(market.yes_price + change)));
+
+    return {
+        ...market,
+        yes_price: newYesPrice,
+        no_price: 100 - newYesPrice,
+        yes_bid: newYesPrice,
+        no_bid: 100 - newYesPrice,
+    };
 }
 
 // ============================================
@@ -339,7 +403,6 @@ export function calculatePositionPnL(position: Position): {
     const priceChange = position.current_price - position.entry_price;
     const percentMove = (priceChange / position.entry_price) * 100;
 
-    // Clamp to thresholds
     const clampedPercent = Math.min(
         Math.max(percentMove, -(position.max_loss_percent || 5)),
         position.max_reward_percent || 20
@@ -365,7 +428,6 @@ export function checkSettlementTrigger(position: Position, market: KalshiMarket)
 
     const { pnlPercent } = calculatePositionPnL(position);
 
-    // Check market resolved
     if (market.status === 'settled' && market.result) {
         const won = market.result.toUpperCase() === position.prediction_direction;
         return {
@@ -375,7 +437,6 @@ export function checkSettlementTrigger(position: Position, market: KalshiMarket)
         };
     }
 
-    // Check max reward threshold
     if (pnlPercent >= (position.max_reward_percent || 20)) {
         return {
             shouldSettle: true,
@@ -384,7 +445,6 @@ export function checkSettlementTrigger(position: Position, market: KalshiMarket)
         };
     }
 
-    // Check max loss threshold
     if (pnlPercent <= -(position.max_loss_percent || 5)) {
         return {
             shouldSettle: true,
@@ -393,7 +453,6 @@ export function checkSettlementTrigger(position: Position, market: KalshiMarket)
         };
     }
 
-    // Check time expired
     if (position.expires_at && new Date() >= new Date(position.expires_at)) {
         return {
             shouldSettle: true,
