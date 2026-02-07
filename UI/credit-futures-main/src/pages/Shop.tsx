@@ -33,9 +33,13 @@ const ProductCard = ({ product }: { product: Product }) => {
       animate={{ opacity: 1, y: 0 }}
       className="bg-white border border-border rounded-xl overflow-hidden hover:shadow-card-hover hover:border-primary/20 transition-all duration-200 group"
     >
-      {/* Product Image Placeholder */}
-      <div className="h-32 bg-gradient-to-br from-gray-100 to-gray-50 flex items-center justify-center">
-        <ShoppingBag className="w-10 h-10 text-gray-300" />
+      {/* Product Image */}
+      <div className="h-40 overflow-hidden bg-gray-100 relative">
+        <img
+          src={product.image}
+          alt={product.name}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
       </div>
 
       <div className="p-5">

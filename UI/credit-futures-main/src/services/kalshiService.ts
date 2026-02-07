@@ -287,10 +287,11 @@ function transformMarket(
 
     // Calculate 24h change
     let priceChange = 0;
-    if (apiMarket.previous_yes_bid && apiMarket.previous_yes_bid > 0) {
-        priceChange = ((yesPrice - apiMarket.previous_yes_bid) / apiMarket.previous_yes_bid) * 100;
-    } else if (apiMarket.previous_price && apiMarket.previous_price > 0) {
-        priceChange = ((yesPrice - apiMarket.previous_price) / apiMarket.previous_price) * 100;
+    const market = apiMarket as any; // API may have additional fields
+    if (market.previous_yes_bid && market.previous_yes_bid > 0) {
+        priceChange = ((yesPrice - market.previous_yes_bid) / market.previous_yes_bid) * 100;
+    } else if (market.previous_price && market.previous_price > 0) {
+        priceChange = ((yesPrice - market.previous_price) / market.previous_price) * 100;
     }
 
     return {
@@ -359,13 +360,14 @@ export const CATEGORY_CONFIG: Record<MarketCategory, { icon: string; label: stri
     elections: { icon: '🗳️', label: 'Elections', color: 'bg-violet-100 text-violet-700 border-violet-200' },
     companies: { icon: '🏢', label: 'Companies', color: 'bg-slate-100 text-slate-700 border-slate-200' },
     transportation: { icon: '✈️', label: 'Transport', color: 'bg-sky-100 text-sky-700 border-sky-200' },
+    weather: { icon: '🌤️', label: 'Weather', color: 'bg-blue-100 text-blue-700 border-blue-200' },
     other: { icon: '📊', label: 'Other', color: 'bg-gray-100 text-gray-700 border-gray-200' },
 };
 
 export const ALL_CATEGORIES: MarketCategory[] = [
     'politics', 'economics', 'climate', 'sports', 'entertainment',
     'financials', 'health', 'science', 'world', 'social',
-    'crypto', 'elections', 'companies', 'transportation', 'other'
+    'crypto', 'elections', 'companies', 'transportation', 'weather', 'other'
 ];
 
 // ============================================
