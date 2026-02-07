@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Position, Purchase, SavedMarket, MarketCategory, PredictionDirection } from '@/types/kalshi';
 import { computeHardMaxExpiryISO, clampExpiryISO } from "@/lib/risk"; // or "@/lib/rules"
-
+import { getMockImage } from "@/lib/mockImage";
 
 
 // Types
@@ -65,6 +65,7 @@ interface AppState {
   creditOutstanding: number;
   updateBalance: (amount: number) => void;
 }
+
 
 // Mock Products
 export const PRODUCTS: Product[] = [
