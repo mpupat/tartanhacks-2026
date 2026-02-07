@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils';
 import { Plus, Filter, Search, ShoppingBag, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { getMockImage } from "@/lib/mockImage";
+
 
 const CATEGORIES = ['All', 'Infrastructure', 'Security', 'Consulting', 'Hardware', 'Design', 'Digital'];
 
