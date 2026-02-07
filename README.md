@@ -7,8 +7,6 @@ Winback is a smart financial solution that helps you invest your credit card cas
 You need Python and node.js to run this project
 It has been tested with Python 3.13 and node.js 25.2.1
 
-To run a local demo, checkout the 'local_demo' branch first.
-
 ## Run the backend first
 create a python virtual environment :
 ```
