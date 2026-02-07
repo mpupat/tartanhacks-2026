@@ -101,29 +101,32 @@ interface EventWithMarkets {
 }
 
 export async function fetchMarkets(filters: MarketFilters = {}): Promise<KalshiMarket[]> {
-    try {
-        // Step 1: Fetch events (which have proper categories and titles)
-        const eventsResponse = await apiFetch(`/events?limit=100&with_nested_markets=true&status=open`);
-        if (!eventsResponse.ok) {
-            // Fallback: try without with_nested_markets
-            return await fetchMarketsSimple(filters);
-        }
-
-        const eventsData = await eventsResponse.json();
-
-        // Check if we got nested markets
-        if (eventsData.events?.[0]?.markets) {
-            // API returned markets nested in events - great!
-            return processEventsWithMarkets(eventsData.events, filters);
-        }
-
-        // Fallback to fetching events then markets separately
-        return await fetchMarketsViaEvents(filters);
-    } catch (error) {
-        console.error('Failed to fetch markets:', error);
-        return [];
+  try {
+    // Primary: events with nested markets (this WORKS in your backend screenshots)
+    const eventsResponse = await apiFetch(`/events?limit=100&with_nested_markets=true&status=open`);
+    if (!eventsResponse.ok) {
+      // fallback (some deployments might not support with_nested_markets)
+      return await fetchMarketsViaEvents(filters);
     }
+
+    const eventsData = await eventsResponse.json();
+
+    // Handle shape: { events: [...] }
+    const events = eventsData?.events ?? [];
+
+    // If nested markets exist, process them
+    if (events.length > 0 && events[0]?.markets) {
+      return processEventsWithMarkets(events, filters);
+    }
+
+    // Else fallback
+    return await fetchMarketsViaEvents(filters);
+  } catch (error) {
+    console.error("Failed to fetch markets:", error);
+    return [];
+  }
 }
+
 
 
 export function buildPositionWithBoundedExpiry(input: {
