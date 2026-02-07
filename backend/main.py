@@ -698,8 +698,15 @@ async def get_transaction_feed(limit: int = 20):
         response = await client.request(request)
         
         transactions = []
+        transactions = []
         for tx_data in response.result.get("transactions", []):
+            # Handle different XRPL server response formats
             tx = tx_data.get("tx", {})
+            if not tx:
+                tx = tx_data.get("transaction", {})
+            if not tx:
+                tx = tx_data.get("tx_json", {})
+                
             meta = tx_data.get("meta", {})
             
             # Parse memo
@@ -716,14 +723,21 @@ async def get_transaction_feed(limit: int = 20):
             
             tx_type = memo_data.get("type", "UNKNOWN")
             
+            # Get timestamp
+            timestamp = None
+            if "date" in tx:
+                timestamp = ripple_time_to_datetime(tx["date"]).isoformat()
+            elif "close_time_iso" in tx_data:
+                timestamp = tx_data["close_time_iso"]
+            
             # Format transaction for feed
             parsed_tx = {
-                "hash": tx.get("hash", ""),
+                "hash": tx.get("hash", "") or tx_data.get("hash", ""),
                 "type": tx_type,
-                "ledger_index": tx.get("ledger_index", 0),
-                "timestamp": ripple_time_to_datetime(tx.get("date", 0)).isoformat() if tx.get("date") else None,
-                "validated": meta.get("TransactionResult") == "tesSUCCESS",
-                "explorer_url": f"https://testnet.xrpl.org/transactions/{tx.get('hash', '')}",
+                "ledger_index": tx.get("ledger_index", 0) or tx_data.get("ledger_index", 0),
+                "timestamp": timestamp,
+                "validated": meta.get("TransactionResult") == "tesSUCCESS" or tx_data.get("validated", False),
+                "explorer_url": f"https://testnet.xrpl.org/transactions/{tx.get('hash', '') or tx_data.get('hash', '')}",
                 "data": memo_data
             }
             
