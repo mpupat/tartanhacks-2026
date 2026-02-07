@@ -1,4 +1,4 @@
-# tartanhacks-2026
+# Team Bonjour Bombay
 
 you need Python and node.js to run this project
 it has been tested with Python 3.13 and node.js 25.2.1
