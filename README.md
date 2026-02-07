@@ -7,7 +7,9 @@ it has been tested with Python 3.13 and node.js
 create a python virtual environment :
 python -m venv .venv
 source .venv/bin/activate
-pip install -r backend/requirements.txt
+cd backend
+pip install -r requirements.txt
+python main.py
 
 # run the frontend then:
 cd frontend
